@@ -1,0 +1,12 @@
+app:
+  debug: true
+  env: local
+  port: 25000
+
+sentry:
+#  dsn: abc
+
+twitch:
+  webhook:
+    secret: "some secret"
+    url: "/twitch-webhook"
