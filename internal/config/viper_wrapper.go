@@ -57,6 +57,17 @@ func (v viperWrapper) Int(key string) (int, error) {
 	return asInt, nil
 }
 
+// Int64 returns int64 by specified key.
+func (v viperWrapper) Int64(key string) (int64, error) {
+	str := v.String(key)
+	asInt, err := strconv.ParseInt(str, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("incorrect value %q for int64: %v", str, err)
+	}
+
+	return asInt, nil
+}
+
 // // MapIntString returns map[int]string by specified key.
 // func (v viperWrapper) MapIntString(key string) (map[int]string, error) {
 // 	str := v.String(key)

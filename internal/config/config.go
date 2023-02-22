@@ -5,11 +5,12 @@ import (
 )
 
 type Config struct {
-	AppEnv AppEnv
-	Debug  bool
-	Port   int
-	Sentry Sentry
-	Twitch Twitch
+	AppEnv   AppEnv
+	Debug    bool
+	Port     int
+	Sentry   Sentry
+	Twitch   Twitch
+	Telegram Telegram
 }
 
 func New(path string) (Config, error) {
@@ -38,11 +39,17 @@ func New(path string) (Config, error) {
 		return Config{}, fmt.Errorf("get twitch: %v", err)
 	}
 
+	telegram, err := getTelegram(v, "telegram")
+	if err != nil {
+		return Config{}, fmt.Errorf("get telegram: %v", err)
+	}
+
 	return Config{
-		AppEnv: appEnv,
-		Debug:  v.Bool("app.debug"),
-		Port:   port,
-		Sentry: sentry,
-		Twitch: twitch,
+		AppEnv:   appEnv,
+		Debug:    v.Bool("app.debug"),
+		Port:     port,
+		Sentry:   sentry,
+		Twitch:   twitch,
+		Telegram: telegram,
 	}, nil
 }

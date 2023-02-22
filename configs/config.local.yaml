@@ -4,9 +4,13 @@ app:
   port: 25000
 
 sentry:
-#  dsn: abc
+  dsn: https://15f5256c2c884005bc4bfa8803a2ae1b@o992980.ingest.sentry.io/4504725244674048
 
 twitch:
   webhook:
     secret: "some secret"
     url: "/twitch-webhook"
+
+telegram:
+  secretToken: "5768337691:AAHe4_HQuNK0HgOwQQyI2cwjYoCgsgRtFCQ"
+  chatID: -863589555
