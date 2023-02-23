@@ -96,9 +96,14 @@ func (h Handler) processStreamOnlineMessage(
 		return
 	}
 
-	// TODO: Get stream title.
+	channel, err := h.twitch.GetChannel(ctx, 92280301)
+	if err != nil {
+		log.Error(err)
+		ctx.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 
-	if err := h.telegram.SendStreamStartedMessage(ctx, "Some stream title"); err != nil {
+	if err := h.telegram.SendStreamStartedMessage(ctx, channel.Title); err != nil {
 		log.Error(err)
 		ctx.AbortWithStatus(http.StatusBadRequest)
 		return

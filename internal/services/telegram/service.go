@@ -29,10 +29,7 @@ func (s Service) SendStreamStartedMessage(
 		// 	"Это сообщение из нашего ультра мега нового, супер молодежного анонсера.",
 		// 	tgbotapiobject.MessageEntityTypeItalic,
 		// ).
-		AddText(
-			"Это сообщение из нашего ультра мега нового, супер молодежного анонсера.",
-		).
-		AddText("\n\n"+streamTitle).
+		AddText(streamTitle).
 		AddText("\ntwitch.tv/qbnk").
 		Build())
 	if err != nil {

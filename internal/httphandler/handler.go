@@ -4,9 +4,11 @@ import (
 	"context"
 
 	"github.com/qbnk/twitch-announcer/internal/logger"
+	"github.com/qbnk/twitch-announcer/pkg/twitchapi"
 )
 
 type twitch interface {
+	GetChannel(ctx context.Context, channelID int) (twitchapi.Channel, error)
 	ValidateSignature(messageID, messageTimestamp, body, signature string) bool
 }
 

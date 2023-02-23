@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"strings"
 )
 
 type Telegram struct {
@@ -12,9 +11,7 @@ type Telegram struct {
 
 // Returns configuration related to Telegram.
 func getTelegram(v viperWrapper, prefix string) (Telegram, error) {
-	if !strings.HasSuffix(prefix, ".") {
-		prefix += "."
-	}
+	prefix = formatPrefix(prefix)
 
 	secretToken, err := v.StringNonEmpty(prefix + "secretToken")
 	if err != nil {
