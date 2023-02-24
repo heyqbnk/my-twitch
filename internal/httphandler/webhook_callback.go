@@ -22,18 +22,18 @@ func (h Handler) WebhookCallback(ctx *gin.Context) {
 		return
 	}
 
-	// isValid := h.twitch.ValidateSignature(
-	// 	ctx.GetHeader(_webhookTwitchMessageIDHeader),
-	// 	ctx.GetHeader(_webhookTwitchMessageTimestampHeader),
-	// 	string(body),
-	// 	ctx.GetHeader(_webhookTwitchMessageSignatureHeader),
-	// )
-	//
-	// if !isValid {
-	// 	logger.Error(err)
-	// 	ctx.AbortWithStatus(http.StatusBadRequest)
-	// 	return
-	// }
+	isValid := h.twitch.ValidateWebhookSignature(
+		ctx.GetHeader(_webhookTwitchMessageIDHeader),
+		ctx.GetHeader(_webhookTwitchMessageTimestampHeader),
+		string(body),
+		ctx.GetHeader(_webhookTwitchMessageSignatureHeader),
+	)
+
+	if !isValid {
+		log.Error(err)
+		ctx.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 
 	switch messageType {
 	// In case, we received "webhook_callback_verification" message type,
@@ -96,7 +96,7 @@ func (h Handler) processStreamOnlineMessage(
 		return
 	}
 
-	channel, err := h.twitch.GetChannel(ctx, 92280301)
+	channel, err := h.twitch.GetChannel(ctx, h.channelID)
 	if err != nil {
 		log.Error(err)
 		ctx.AbortWithStatus(http.StatusBadRequest)

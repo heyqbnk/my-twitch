@@ -10,14 +10,14 @@ type twitchWebhook struct {
 }
 
 type twitchAPI struct {
-	AccessToken  string
 	ClientID     string
 	ClientSecret string
 }
 
 type Twitch struct {
-	API     twitchAPI
-	Webhook twitchWebhook
+	API       twitchAPI
+	ChannelID int
+	Webhook   twitchWebhook
 }
 
 // Returns configuration related to Twitch.
@@ -29,12 +29,21 @@ func getTwitch(v viperWrapper, prefix string) (Twitch, error) {
 		return Twitch{}, fmt.Errorf("get api: %v", err)
 	}
 
+	channelID, err := v.Int(prefix + "channelID")
+	if err != nil {
+		return Twitch{}, fmt.Errorf("get channel ID: %v", err)
+	}
+
 	webhook, err := getTwitchWebhook(v, prefix+"webhook")
 	if err != nil {
 		return Twitch{}, fmt.Errorf("get webhook: %v", err)
 	}
 
-	return Twitch{Webhook: webhook, API: api}, nil
+	return Twitch{
+		API:       api,
+		ChannelID: channelID,
+		Webhook:   webhook,
+	}, nil
 }
 
 // Returns configuration related to Twitch Webhook.
@@ -58,11 +67,6 @@ func getTwitchWebhook(v viperWrapper, prefix string) (twitchWebhook, error) {
 func getTwitchAPI(v viperWrapper, prefix string) (twitchAPI, error) {
 	prefix = formatPrefix(prefix)
 
-	accessToken, err := v.StringNonEmpty(prefix + "accessToken")
-	if err != nil {
-		return twitchAPI{}, fmt.Errorf("get access token: %v", err)
-	}
-
 	clientID, err := v.StringNonEmpty(prefix + "clientID")
 	if err != nil {
 		return twitchAPI{}, fmt.Errorf("get client ID: %v", err)
@@ -74,7 +78,6 @@ func getTwitchAPI(v viperWrapper, prefix string) (twitchAPI, error) {
 	}
 
 	return twitchAPI{
-		AccessToken:  accessToken,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 	}, nil

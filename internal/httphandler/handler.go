@@ -3,13 +3,14 @@ package httphandler
 import (
 	"context"
 
+	"github.com/qbnk/twitch-announcer/pkg/twitch/helix"
+
 	"github.com/qbnk/twitch-announcer/internal/logger"
-	"github.com/qbnk/twitch-announcer/pkg/twitchapi"
 )
 
 type twitch interface {
-	GetChannel(ctx context.Context, channelID int) (twitchapi.Channel, error)
-	ValidateSignature(messageID, messageTimestamp, body, signature string) bool
+	GetChannel(ctx context.Context, channelID int) (helix.Channel, error)
+	ValidateWebhookSignature(messageID, messageTimestamp, body, signature string) bool
 }
 
 type telegram interface {
@@ -17,15 +18,22 @@ type telegram interface {
 }
 
 type Handler struct {
-	twitch   twitch
-	telegram telegram
-	logger   logger.Logger
+	channelID int
+	twitch    twitch
+	telegram  telegram
+	logger    logger.Logger
 }
 
-func New(twitch twitch, telegram telegram, logger logger.Logger) Handler {
+func New(
+	channelID int,
+	twitch twitch,
+	telegram telegram,
+	logger logger.Logger,
+) Handler {
 	return Handler{
-		twitch:   twitch,
-		telegram: telegram,
-		logger:   logger,
+		channelID: channelID,
+		twitch:    twitch,
+		telegram:  telegram,
+		logger:    logger,
 	}
 }

@@ -1,4 +1,4 @@
-package twitchapi
+package helix
 
 import (
 	"context"
@@ -9,15 +9,13 @@ import (
 	"net/url"
 )
 
-// Performs request to API with specified method and parameters.
-func (a *API) requestAPI(
+// Performs request to Twitch API with specified method and parameters.
+func (a *API) request(
 	ctx context.Context,
-	method string,
+	accessToken, method string,
 	query url.Values,
 	dest interface{},
 ) error {
-	// TODO: Check access token
-
 	// Create request.
 	req, err := http.NewRequestWithContext(
 		ctx,
@@ -26,7 +24,7 @@ func (a *API) requestAPI(
 		nil,
 	)
 	req.Header.Add("Client-Id", a.clientID)
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.accessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	// req.Header.Add("Content-Type", "application/json")
 
 	// Send request.
@@ -35,42 +33,43 @@ func (a *API) requestAPI(
 		return fmt.Errorf("send http request: %v", err)
 	}
 
-	if res.StatusCode == 401 {
-		if authErr := a.Authenticate(ctx); authErr != nil {
-			return fmt.Errorf("%s: %w", authErr.Error(), ErrAuthorizationFailed)
-		}
-
-		return a.requestAPI(ctx, method, query, dest)
-	}
-
-	if res.StatusCode != 200 && res.StatusCode != 400 {
-		return fmt.Errorf("unexpected response status %d", res.StatusCode)
-	}
-
-	// Read response.
-	responseBytes, err := io.ReadAll(res.Body)
+	// Read response body.
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("read response: %v", err)
+		return fmt.Errorf("read response. Status %d: %v", res.StatusCode, err)
 	}
 
-	// Extract response JSON.
+	// Try to unmarshal it to expected structure.
 	var response struct {
 		Error   string        `json:"error"`
 		Status  int           `json:"status"`
 		Message string        `json:"message"`
 		Data    requestResult `json:"data"`
 	}
-	if err := json.Unmarshal(responseBytes, &response); err != nil {
-		return fmt.Errorf("unexpected response: %v", err)
+	if err := json.Unmarshal(body, &response); err != nil {
+		return fmt.Errorf("%w: %v", ErrUnexpectedResponse, err)
 	}
 
-	// Error occurred.
-	if response.Status != 0 {
-		return fmt.Errorf(`request error. "%s: %s"`, response.Error, response.Message)
+	if res.StatusCode != 200 {
+		switch response.Status {
+		case 400:
+			return Err400
+		case 404:
+			return Err404
+		default:
+			return ErrUnknown
+		}
 	}
-	if err := json.Unmarshal(response.Data.Bytes, dest); err != nil {
-		return fmt.Errorf("incorrect response: %v", err)
+
+	// In case, destination was specified, it means, caller expects some
+	// data to be returned by request.
+	if dest != nil {
+		// Try to unmarshal body to destination.
+		if err := json.Unmarshal(response.Data.Bytes, dest); err != nil {
+			return fmt.Errorf("%w: %v", ErrInvalidResponse, err)
+		}
 	}
+
 	return nil
 }
 

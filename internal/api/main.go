@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/getsentry/sentry-go"
@@ -28,19 +27,16 @@ func Run(cfg config.Config) error {
 	log := logger.New()
 	twitchService := twitch.New(
 		cfg.Twitch.Webhook.Secret,
-		cfg.Twitch.API.AccessToken,
 		cfg.Twitch.API.ClientID,
 		cfg.Twitch.API.ClientSecret,
 	)
 	tgbot := telegram.New(cfg.Telegram.SecretToken, cfg.Telegram.ChatID)
 
-	handler := httphandler.New(twitchService, tgbot, log)
+	handler := httphandler.New(cfg.Twitch.ChannelID, twitchService, tgbot, log)
 
 	app := gin.Default()
 	app.Use(newSentryMiddleware(sentryClient))
 	app.POST(cfg.Twitch.Webhook.URL, handler.WebhookCallback)
-
-	fmt.Println(twitchService.GetNewAccessToken(context.Background()))
 
 	if err := app.Run(fmt.Sprintf(":%d", cfg.Port)); err != nil {
 		return fmt.Errorf("run http server: %w", err)

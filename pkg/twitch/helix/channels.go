@@ -1,4 +1,4 @@
-package twitchapi
+package helix
 
 import (
 	"context"
@@ -13,13 +13,17 @@ type Channel struct {
 }
 
 // GetChannel returns channel information.
-func (a *API) GetChannel(ctx context.Context, channelID int) (Channel, error) {
+func (a *API) GetChannel(
+	ctx context.Context,
+	accessToken string,
+	channelID int,
+) (Channel, error) {
 	var res []Channel
 	query := url.Values{}
 	query.Set("broadcaster_id", strconv.Itoa(channelID))
 
-	if err := a.requestAPI(ctx, "channels", query, &res); err != nil {
-		return Channel{}, fmt.Errorf("request error: %v", err)
+	if err := a.request(ctx, accessToken, "channels", query, &res); err != nil {
+		return Channel{}, fmt.Errorf("request error: %w", err)
 	}
 
 	if len(res) == 0 {
