@@ -54,6 +54,8 @@ func (a *API) request(
 		switch response.Status {
 		case 400:
 			return Err400
+		case 401:
+			return fmt.Errorf("%w: %s", ErrNotAuthorized, response.Message)
 		case 404:
 			return Err404
 		default:

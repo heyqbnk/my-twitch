@@ -25,17 +25,26 @@ func New(webhookSecret, clientID, clientSecret string) *Service {
 	}
 }
 
-// Returns fresh access token to perform requests to Twitch API.
+// Returns cached access token to perform requests to Twitch API.
 func (s *Service) getAccessToken(ctx context.Context) (string, error) {
 	if len(s.accessToken) == 0 || time.Now().After(s.accessTokenExpiresAt) {
-		authResult, err := s.oauth.AuthenticateApp(ctx)
-		if err != nil {
-			return "", fmt.Errorf("authenticate via API: %w", err)
+		if err := s.renewAccessToken(ctx); err != nil {
+			return "", fmt.Errorf("renew access token: %w", err)
 		}
-
-		s.accessToken = authResult.AccessToken
-		s.accessTokenExpiresAt = time.Now().Add(time.Duration(authResult.ExpiresIn) * time.Second)
 	}
 
 	return s.accessToken, nil
+}
+
+// Returns fresh access token to perform requests to Twitch API.
+func (s *Service) renewAccessToken(ctx context.Context) error {
+	authResult, err := s.oauth.AuthenticateApp(ctx)
+	if err != nil {
+		return fmt.Errorf("authenticate via API: %w", err)
+	}
+
+	s.accessToken = authResult.AccessToken
+	s.accessTokenExpiresAt = time.Now().Add(time.Duration(authResult.ExpiresIn) * time.Second)
+
+	return nil
 }

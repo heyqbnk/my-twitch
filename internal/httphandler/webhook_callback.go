@@ -2,6 +2,7 @@ package httphandler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -30,7 +31,7 @@ func (h Handler) WebhookCallback(ctx *gin.Context) {
 	)
 
 	if !isValid {
-		log.Error(err)
+		log.Error(errors.New("signature invalid"))
 		ctx.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
