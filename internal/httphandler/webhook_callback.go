@@ -55,7 +55,7 @@ func (h Handler) WebhookCallback(ctx *gin.Context) {
 // Processes request from Twitch sent to confirm subscription.
 func (h Handler) processWebhookVerificationMessageEvent(
 	ctx *gin.Context,
-	log logger.Logger,
+	log *logger.Logger,
 	bodyBytes []byte,
 ) {
 	var body webhookCallbackVerificationPendingMessage
@@ -69,7 +69,7 @@ func (h Handler) processWebhookVerificationMessageEvent(
 
 func (h Handler) processWebhookNotification(
 	ctx *gin.Context,
-	log logger.Logger,
+	log *logger.Logger,
 	bodyBytes []byte,
 ) {
 	var body webhookNotificationMessage[struct{}]
@@ -87,7 +87,7 @@ func (h Handler) processWebhookNotification(
 
 func (h Handler) processStreamOnlineMessage(
 	ctx *gin.Context,
-	log logger.Logger,
+	log *logger.Logger,
 	bodyBytes []byte,
 ) {
 	var body webhookStreamOnlineMessage

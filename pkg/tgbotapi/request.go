@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/pkg/errors"
 )
 
 // Request performs custom request with specified method and parameters.
@@ -34,7 +32,7 @@ func (b *Bot) request(
 	// Prepare request body.
 	body, err := json.Marshal(params)
 	if err != nil {
-		return errors.Wrap(err, "marshal request body")
+		return fmt.Errorf("marshal request body: %v", err)
 	}
 
 	// Create request.
@@ -49,13 +47,13 @@ func (b *Bot) request(
 	// Send request.
 	res, err := b.client.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "error response")
+		return fmt.Errorf("error response: %v", err)
 	}
 
 	// Read response.
 	responseBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return errors.Wrap(err, "error reading response")
+		return fmt.Errorf("read response: %v", err)
 	}
 
 	// Extract response JSON.
@@ -70,13 +68,10 @@ func (b *Bot) request(
 
 	// Error occurred.
 	if response.ErrorCode != 0 {
-		return errors.Wrapf(
-			ErrUnsuccessfulResponse,
-			"error %d: %s", response.ErrorCode, response.Description,
-		)
+		return fmt.Errorf("%w: %d %s", ErrUnsuccessfulResponse, response.ErrorCode, response.Description)
 	}
 	if err := json.Unmarshal(response.Result.Bytes, dest); err != nil {
-		return errors.Wrap(ErrIncorrectResponse, err.Error())
+		return fmt.Errorf("%w: %v", ErrIncorrectResponse, err)
 	}
 	return nil
 }

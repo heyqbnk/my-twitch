@@ -5,8 +5,7 @@ import (
 )
 
 type twitchWebhook struct {
-	Secret string
-	URL    string
+	URL string
 }
 
 type twitchAPI struct {
@@ -16,7 +15,7 @@ type twitchAPI struct {
 
 type Twitch struct {
 	API       twitchAPI
-	ChannelID int
+	ChannelID string
 	Webhook   twitchWebhook
 }
 
@@ -29,7 +28,7 @@ func getTwitch(v viperWrapper, prefix string) (Twitch, error) {
 		return Twitch{}, fmt.Errorf("get api: %v", err)
 	}
 
-	channelID, err := v.Int(prefix + "channelID")
+	channelID, err := v.StringNonEmpty(prefix + "channelID")
 	if err != nil {
 		return Twitch{}, fmt.Errorf("get channel ID: %v", err)
 	}
@@ -50,17 +49,12 @@ func getTwitch(v viperWrapper, prefix string) (Twitch, error) {
 func getTwitchWebhook(v viperWrapper, prefix string) (twitchWebhook, error) {
 	prefix = formatPrefix(prefix)
 
-	secret, err := v.StringNonEmpty(prefix + "secret")
-	if err != nil {
-		return twitchWebhook{}, fmt.Errorf("get webhook secret: %v", err)
-	}
-
 	url := v.String(prefix + "url")
 	if len(url) == 0 {
 		url = "/"
 	}
 
-	return twitchWebhook{Secret: secret, URL: url}, nil
+	return twitchWebhook{URL: url}, nil
 }
 
 // Returns configuration related to Twitch API.

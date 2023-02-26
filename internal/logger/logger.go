@@ -1,9 +1,10 @@
 package logger
 
 import (
+	"context"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 type Logger struct {
@@ -11,8 +12,8 @@ type Logger struct {
 	sentryHub *sentry.Hub
 }
 
-func New() Logger {
-	return Logger{
+func New() *Logger {
+	return &Logger{
 		log: logrus.New(),
 	}
 }
@@ -25,7 +26,7 @@ func (l Logger) Error(err error) {
 	}
 }
 
-func (l Logger) WithContext(ctx context.Context) Logger {
+func (l Logger) WithContext(ctx context.Context) *Logger {
 	newLogger := New()
 	newLogger.sentryHub = sentry.GetHubFromContext(ctx)
 

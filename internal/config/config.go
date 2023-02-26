@@ -7,7 +7,7 @@ import (
 type Config struct {
 	AppEnv   AppEnv
 	Debug    bool
-	Port     int
+	Http     Http
 	Sentry   Sentry
 	Twitch   Twitch
 	Telegram Telegram
@@ -24,9 +24,9 @@ func New(path string) (Config, error) {
 		return Config{}, fmt.Errorf("get app environment: %v", err)
 	}
 
-	port, err := getPort(v, "app.port")
+	http, err := getHttp(v, "http")
 	if err != nil {
-		return Config{}, fmt.Errorf("get port: %v", err)
+		return Config{}, fmt.Errorf("get http: %v", err)
 	}
 
 	sentry, err := getSentry(v, "sentry")
@@ -47,7 +47,7 @@ func New(path string) (Config, error) {
 	return Config{
 		AppEnv:   appEnv,
 		Debug:    v.Bool("app.debug"),
-		Port:     port,
+		Http:     http,
 		Sentry:   sentry,
 		Twitch:   twitch,
 		Telegram: telegram,

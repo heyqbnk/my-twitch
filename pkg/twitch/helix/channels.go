@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
-	"strconv"
 )
 
 type Channel struct {
@@ -16,13 +16,13 @@ type Channel struct {
 func (a *API) GetChannel(
 	ctx context.Context,
 	accessToken string,
-	channelID int,
+	channelID string,
 ) (Channel, error) {
 	var res []Channel
 	query := url.Values{}
-	query.Set("broadcaster_id", strconv.Itoa(channelID))
+	query.Set("broadcaster_id", channelID)
 
-	if err := a.request(ctx, accessToken, "channels", query, &res); err != nil {
+	if err := a.request(ctx, accessToken, http.MethodGet, "channels", query, nil, &res); err != nil {
 		return Channel{}, fmt.Errorf("request error: %w", err)
 	}
 

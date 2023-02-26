@@ -14,31 +14,20 @@ import (
 )
 
 // Run runs http server.
-func Run(cfg config.Config) error {
-	sentryClient, err := sentry.NewClient(sentry.ClientOptions{
-		Dsn:         cfg.Sentry.Dsn,
-		Debug:       cfg.Debug,
-		Environment: cfg.AppEnv.String(),
-	})
-	if err != nil {
-		return fmt.Errorf("create Sentry client: %v", err)
-	}
-
-	log := logger.New()
-	twitchService := twitch.New(
-		cfg.Twitch.Webhook.Secret,
-		cfg.Twitch.API.ClientID,
-		cfg.Twitch.API.ClientSecret,
-	)
-	tgbot := telegram.New(cfg.Telegram.SecretToken, cfg.Telegram.ChatID)
-
-	handler := httphandler.New(cfg.Twitch.ChannelID, twitchService, tgbot, log)
+func Run(
+	cfg config.Config,
+	sentryClient *sentry.Client,
+	telegramService *telegram.Service,
+	twitchService *twitch.Service,
+	log *logger.Logger,
+) error {
+	handler := httphandler.New(cfg.Twitch.ChannelID, twitchService, telegramService, log)
 
 	app := gin.Default()
 	app.Use(newSentryMiddleware(sentryClient))
 	app.POST(cfg.Twitch.Webhook.URL, handler.WebhookCallback)
 
-	if err := app.Run(fmt.Sprintf(":%d", cfg.Port)); err != nil {
+	if err := app.Run(fmt.Sprintf(":%d", cfg.Http.Port)); err != nil {
 		return fmt.Errorf("run http server: %w", err)
 	}
 

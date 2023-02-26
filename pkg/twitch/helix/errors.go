@@ -9,4 +9,5 @@ var (
 	ErrUnknown            = errors.New("unknown error")
 	ErrInvalidResponse    = errors.New("invalid response")
 	ErrUnexpectedResponse = errors.New("unexpected response")
+	ErrInvalidBody        = errors.New("invalid body")
 )

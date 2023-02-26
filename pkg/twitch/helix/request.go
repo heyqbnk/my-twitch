@@ -1,6 +1,7 @@
 package helix
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,20 +13,37 @@ import (
 // Performs request to Twitch API with specified method and parameters.
 func (a *API) request(
 	ctx context.Context,
-	accessToken, method string,
+	accessToken string,
+	method, path string,
 	query url.Values,
+	body interface{},
 	dest interface{},
 ) error {
+	var bodyBytes []byte
+
+	if body != nil {
+		bodyJson, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrInvalidBody, err)
+		}
+
+		bodyBytes = bodyJson
+	}
+
 	// Create request.
 	req, err := http.NewRequestWithContext(
 		ctx,
-		http.MethodGet,
-		fmt.Sprintf("https://api.twitch.tv/helix/%s?%s", method, query.Encode()),
+		method,
+		fmt.Sprintf("https://api.twitch.tv/helix/%s?%s", path, query.Encode()),
 		nil,
 	)
 	req.Header.Add("Client-Id", a.clientID)
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
-	// req.Header.Add("Content-Type", "application/json")
+
+	if len(bodyBytes) > 0 {
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		req.Header.Add("Content-Type", "application/json")
+	}
 
 	// Send request.
 	res, err := a.client.Do(req)
@@ -33,8 +51,16 @@ func (a *API) request(
 		return fmt.Errorf("send http request: %v", err)
 	}
 
+	if res.StatusCode == 204 {
+		if dest != nil {
+			return fmt.Errorf("%w: received 204 HTTP status code, but dest specified", ErrInvalidResponse)
+		}
+
+		return nil
+	}
+
 	// Read response body.
-	body, err := io.ReadAll(res.Body)
+	respBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("read response. Status %d: %v", res.StatusCode, err)
 	}
@@ -46,11 +72,11 @@ func (a *API) request(
 		Message string        `json:"message"`
 		Data    requestResult `json:"data"`
 	}
-	if err := json.Unmarshal(body, &response); err != nil {
+	if err := json.Unmarshal(respBody, &response); err != nil {
 		return fmt.Errorf("%w: %v", ErrUnexpectedResponse, err)
 	}
 
-	if res.StatusCode != 200 {
+	if response.Status != 0 {
 		switch response.Status {
 		case 400:
 			return Err400

@@ -12,8 +12,8 @@ type Service struct {
 	tgbot  *tgbotapi.Bot
 }
 
-func New(secretToken string, chatID int64) Service {
-	return Service{chatID: chatID, tgbot: tgbotapi.New(secretToken)}
+func New(secretToken string, chatID int64) *Service {
+	return &Service{chatID: chatID, tgbot: tgbotapi.New(secretToken)}
 }
 
 // SendStreamStartedMessage sends a message to a chat notifying about

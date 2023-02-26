@@ -9,7 +9,7 @@ import (
 )
 
 type twitch interface {
-	GetChannel(ctx context.Context, channelID int) (helix.Channel, error)
+	GetChannel(ctx context.Context, channelID string) (helix.Channel, error)
 	ValidateWebhookSignature(messageID, messageTimestamp, body, signature string) bool
 }
 
@@ -18,17 +18,17 @@ type telegram interface {
 }
 
 type Handler struct {
-	channelID int
+	channelID string
 	twitch    twitch
 	telegram  telegram
-	logger    logger.Logger
+	logger    *logger.Logger
 }
 
 func New(
-	channelID int,
+	channelID string,
 	twitch twitch,
 	telegram telegram,
-	logger logger.Logger,
+	logger *logger.Logger,
 ) Handler {
 	return Handler{
 		channelID: channelID,
