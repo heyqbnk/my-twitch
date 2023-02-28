@@ -1,6 +1,11 @@
-# Twitch Announcer
+# Twitch projects
 
-This is the project we are currently working on the 
-[Twitch stream](https://twitch.tv/qbnk). The initial its idea is to
-make an application which receives the stream start event from Twitch and 
-sends new post in our [Telegram community](https://t.me/heyqbnk).
+Here is the mono-repository which contains all development progress
+done on the [stream](https://twitch.tv/qbnk). We are mostly working
+on projects connected both with Twitch and Telegram.
+
+## Stream announcer
+
+The idea of this project is to post messages in our 
+[Telegram community](https://t.me/heyqbnk) when the stream started. It does 
+not use any dependencies related to Twitch or Telegram. 
