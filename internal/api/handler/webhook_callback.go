@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -23,18 +24,18 @@ func (h *Handler) WebhookCallback(ctx *gin.Context) {
 		return
 	}
 
-	// isValid := h.twitch.ValidateWebhookSignature(
-	// 	ctx.GetHeader(_webhookTwitchMessageIDHeader),
-	// 	ctx.GetHeader(_webhookTwitchMessageTimestampHeader),
-	// 	string(body),
-	// 	ctx.GetHeader(_webhookTwitchMessageSignatureHeader),
-	// )
-	//
-	// if !isValid {
-	// 	log.Error(errors.New("signature invalid"))
-	// 	ctx.AbortWithStatus(http.StatusBadRequest)
-	// 	return
-	// }
+	isValid := h.twitch.ValidateWebhookSignature(
+		ctx.GetHeader(_webhookTwitchMessageIDHeader),
+		ctx.GetHeader(_webhookTwitchMessageTimestampHeader),
+		string(body),
+		ctx.GetHeader(_webhookTwitchMessageSignatureHeader),
+	)
+
+	if !isValid {
+		log.Error(errors.New("signature invalid"))
+		ctx.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 
 	switch messageType {
 	// In case, we received "webhook_callback_verification" message type,
