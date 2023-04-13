@@ -13,11 +13,7 @@ type Channel struct {
 }
 
 // GetChannel returns channel information.
-func (a *API) GetChannel(
-	ctx context.Context,
-	accessToken string,
-	channelID string,
-) (Channel, error) {
+func (a *API) GetChannel(ctx context.Context, accessToken, channelID string) (Channel, error) {
 	var res []Channel
 	query := url.Values{}
 	query.Set("broadcaster_id", channelID)

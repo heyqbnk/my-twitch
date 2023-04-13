@@ -1,4 +1,4 @@
-package httphandler
+package handler
 
 const (
 	_webhookCallbackVerificationMessageEventType = "webhook_callback_verification"

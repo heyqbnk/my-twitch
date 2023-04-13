@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.8.2
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.15.0
+	golang.org/x/time v0.1.0
 )
 
 require (

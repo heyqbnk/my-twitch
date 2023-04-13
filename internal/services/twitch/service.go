@@ -18,9 +18,10 @@ type Service struct {
 }
 
 func New(webhookSecret, clientID, clientSecret string) *Service {
+	// TODO: Check Oauth and helix rps.
 	return &Service{
-		api:           helix.New(clientID),
-		oauth:         oauth.New(clientID, clientSecret),
+		api:           helix.New(clientID, 10*time.Second, 3),
+		oauth:         oauth.New(clientID, clientSecret, 10*time.Second, 3),
 		webhookSecret: webhookSecret,
 	}
 }

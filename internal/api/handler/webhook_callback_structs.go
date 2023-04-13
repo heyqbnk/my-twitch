@@ -1,4 +1,4 @@
-package httphandler
+package handler
 
 // Represents a subscription event which contains the information about the
 // subscription required to be confirmed.
@@ -21,8 +21,10 @@ type webhookNotificationMessage[T interface{}] struct {
 
 /* EVENTSUB NOTIFICATION TYPES. */
 
+// Reference: https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#streamonline
+
 type webhookStreamOnlineMessageEvent struct {
-	ID string `json:"id"`
+	BroadcasterUserLogin string `json:"broadcaster_user_login"`
 }
 
 type webhookStreamOnlineMessage = webhookNotificationMessage[webhookStreamOnlineMessageEvent]

@@ -77,23 +77,26 @@ func (a *API) request(
 	}
 
 	if response.Status != 0 {
+		var err error
+
 		switch response.Status {
 		case 400:
-			return Err400
+			err = Err400
 		case 401:
-			return fmt.Errorf("%w: %s", ErrNotAuthorized, response.Message)
+			err = ErrNotAuthorized
 		case 404:
-			return Err404
+			err = Err404
 		default:
-			return ErrUnknown
+			err = ErrUnknown
 		}
+		return fmt.Errorf("%w: %s", err, response.Message)
 	}
 
 	// In case, destination was specified, it means, caller expects some
 	// data to be returned by request.
 	if dest != nil {
 		// Try to unmarshal body to destination.
-		if err := json.Unmarshal(response.Data.Bytes, dest); err != nil {
+		if err := json.Unmarshal(response.Data.bytes, dest); err != nil {
 			return fmt.Errorf("%w: %v", ErrInvalidResponse, err)
 		}
 	}
@@ -105,10 +108,10 @@ func (a *API) request(
 // type just preserves bytes passed during json unmarshalling which then
 // could be used to unmarshal into another structure.
 type requestResult struct {
-	Bytes []byte
+	bytes []byte
 }
 
 func (r *requestResult) UnmarshalJSON(b []byte) error {
-	r.Bytes = b
+	r.bytes = b
 	return nil
 }

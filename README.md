@@ -8,4 +8,4 @@ on projects connected both with Twitch and Telegram.
 
 The idea of this project is to post messages in our 
 [Telegram community](https://t.me/heyqbnk) when the stream started. It does 
-not use any dependencies related to Twitch or Telegram. 
+not use any dependencies related to Twitch or Telegram.

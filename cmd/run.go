@@ -28,15 +28,15 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Create Sentry client.
-	sentryClient := getSentry(cfg)
+	// Create Sentry Hub.
+	sentryHub := getSentryHub(cfg)
 
 	// Create secret which will be used in Twitch webhooks.
 	subscriptionSecret := strconv.Itoa(rand.New(rand.NewSource(time.Now().UnixNano())).Int())
 
 	// Create services.
 	customLog := logger.New()
-	telegramService := telegram.New(cfg.Telegram.SecretToken, cfg.Telegram.ChatID)
+	telegramService := telegram.New(cfg.Telegram.SecretToken)
 	twitchService := twitch.New(
 		subscriptionSecret,
 		cfg.Twitch.API.ClientID,
@@ -46,22 +46,17 @@ func main() {
 	// Create stream online subscription.
 	err := ensureStreamOnlineSubscription(cfg, twitchService, subscriptionSecret)
 	if err != nil {
-		log.Fatal(err)
+		logFatalError(err, sentryHub)
 	}
 
-	if err := api.Run(cfg, sentryClient, telegramService, twitchService, customLog); err != nil {
-		log.Fatal(err)
+	if err := api.Run(cfg, sentryHub, telegramService, twitchService, customLog); err != nil {
+		logFatalError(err, sentryHub)
 	}
-	fmt.Println("Shut down gracefully")
 }
 
 // Checks if "stream.online" subscription exists. In case, it does not, function
 // creates it.
-func ensureStreamOnlineSubscription(
-	cfg config.Config,
-	twitchService *twitch.Service,
-	secret string,
-) error {
+func ensureStreamOnlineSubscription(cfg config.Config, twitchService *twitch.Service, secret string) error {
 	ctx := context.Background()
 
 	// Get list of all eventsub subscriptions.
@@ -74,6 +69,8 @@ func ensureStreamOnlineSubscription(
 
 	// Try to find out if current server is already receiving events from Twitch.
 	for _, sub := range subs {
+		// FIXME: "stream.online" only. We are currently looking for all
+		//  events.
 		if sub.Transport.Callback == callbackURL {
 			// Eventsub subscription already exists. We should delete it.
 			if err := twitchService.DeleteSubscription(ctx, sub.ID); err != nil {
@@ -110,7 +107,7 @@ func getConfig() config.Config {
 	return cfg
 }
 
-func getSentry(cfg config.Config) *sentry.Client {
+func getSentryHub(cfg config.Config) *sentry.Hub {
 	sentryClient, err := sentry.NewClient(sentry.ClientOptions{
 		Dsn:         cfg.Sentry.Dsn,
 		Debug:       cfg.Debug,
@@ -120,5 +117,13 @@ func getSentry(cfg config.Config) *sentry.Client {
 		log.Fatal(fmt.Errorf("create Sentry client: %v", err))
 	}
 
-	return sentryClient
+	return sentry.NewHub(sentryClient, sentry.NewScope())
+}
+
+func logFatalError(err error, sentryHub *sentry.Hub) {
+	sentryHub.WithScope(func(scope *sentry.Scope) {
+		scope.SetLevel(sentry.LevelFatal)
+		sentryHub.CaptureException(err)
+	})
+	log.Fatal(err)
 }

@@ -23,12 +23,7 @@ func (b *Bot) Request(
 }
 
 // Performs request with specified method and parameters.
-func (b *Bot) request(
-	ctx context.Context,
-	method string,
-	params any,
-	dest interface{},
-) error {
+func (b *Bot) request(ctx context.Context, method string, params any, dest interface{}) error {
 	// Prepare request body.
 	body, err := json.Marshal(params)
 	if err != nil {

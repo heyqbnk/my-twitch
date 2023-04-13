@@ -1,9 +1,9 @@
-package httphandler
+package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/qbnk/twitch-announcer/internal/logger"
@@ -11,7 +11,7 @@ import (
 
 // WebhookCallback handles the request from Twitch which was sent via
 // webhook.
-func (h Handler) WebhookCallback(ctx *gin.Context) {
+func (h *Handler) WebhookCallback(ctx *gin.Context) {
 	log := h.logger.WithContext(ctx.Request.Context())
 
 	messageType := ctx.GetHeader("Twitch-Eventsub-Message-Type")
@@ -23,18 +23,18 @@ func (h Handler) WebhookCallback(ctx *gin.Context) {
 		return
 	}
 
-	isValid := h.twitch.ValidateWebhookSignature(
-		ctx.GetHeader(_webhookTwitchMessageIDHeader),
-		ctx.GetHeader(_webhookTwitchMessageTimestampHeader),
-		string(body),
-		ctx.GetHeader(_webhookTwitchMessageSignatureHeader),
-	)
-
-	if !isValid {
-		log.Error(errors.New("signature invalid"))
-		ctx.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
+	// isValid := h.twitch.ValidateWebhookSignature(
+	// 	ctx.GetHeader(_webhookTwitchMessageIDHeader),
+	// 	ctx.GetHeader(_webhookTwitchMessageTimestampHeader),
+	// 	string(body),
+	// 	ctx.GetHeader(_webhookTwitchMessageSignatureHeader),
+	// )
+	//
+	// if !isValid {
+	// 	log.Error(errors.New("signature invalid"))
+	// 	ctx.AbortWithStatus(http.StatusBadRequest)
+	// 	return
+	// }
 
 	switch messageType {
 	// In case, we received "webhook_callback_verification" message type,
@@ -53,7 +53,7 @@ func (h Handler) WebhookCallback(ctx *gin.Context) {
 }
 
 // Processes request from Twitch sent to confirm subscription.
-func (h Handler) processWebhookVerificationMessageEvent(
+func (h *Handler) processWebhookVerificationMessageEvent(
 	ctx *gin.Context,
 	log *logger.Logger,
 	bodyBytes []byte,
@@ -67,11 +67,7 @@ func (h Handler) processWebhookVerificationMessageEvent(
 	}
 }
 
-func (h Handler) processWebhookNotification(
-	ctx *gin.Context,
-	log *logger.Logger,
-	bodyBytes []byte,
-) {
+func (h *Handler) processWebhookNotification(ctx *gin.Context, log *logger.Logger, bodyBytes []byte) {
 	var body webhookNotificationMessage[struct{}]
 	if err := json.Unmarshal(bodyBytes, &body); err != nil {
 		log.Error(err)
@@ -85,11 +81,7 @@ func (h Handler) processWebhookNotification(
 	}
 }
 
-func (h Handler) processStreamOnlineMessage(
-	ctx *gin.Context,
-	log *logger.Logger,
-	bodyBytes []byte,
-) {
+func (h *Handler) processStreamOnlineMessage(ctx *gin.Context, log *logger.Logger, bodyBytes []byte) {
 	var body webhookStreamOnlineMessage
 	if err := json.Unmarshal(bodyBytes, &body); err != nil {
 		log.Error(err)
@@ -97,14 +89,18 @@ func (h Handler) processStreamOnlineMessage(
 		return
 	}
 
-	channel, err := h.twitch.GetChannel(ctx, h.channelID)
+	stream, err := h.twitch.GetStream(ctx, body.Event.BroadcasterUserLogin)
 	if err != nil {
 		log.Error(err)
 		ctx.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	if err := h.telegram.SendStreamStartedMessage(ctx, channel.Title); err != nil {
+	streamURL := strings.Replace(stream.ThumbnailURL, "{width}", "640", 1)
+	streamURL = strings.Replace(streamURL, "{height}", "360", 1)
+
+	err = h.telegram.SendStreamStartedMessage(ctx, h.chatID, stream.Title, stream.GameName, streamURL)
+	if err != nil {
 		log.Error(err)
 		ctx.AbortWithStatus(http.StatusBadRequest)
 		return

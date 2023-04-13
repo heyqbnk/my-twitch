@@ -1,18 +1,24 @@
 package helix
 
 import (
-	"net/http"
+	"time"
+
+	httpext "github.com/qbnk/twitch-announcer/pkg/http-ext"
 )
 
 // API is wrapper for Twitch API v4.
 type API struct {
-	client   *http.Client
+	client   *httpext.Client
 	clientID string
 }
 
-func New(clientID string) *API {
+func New(clientID string, timeout time.Duration, rps int) *API {
 	return &API{
-		client:   &http.Client{},
+		client:   httpext.New(timeout, rps),
 		clientID: clientID,
 	}
+}
+
+func NewDefault(clientID string) *API {
+	return New(clientID, 0, 0)
 }

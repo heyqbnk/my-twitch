@@ -53,10 +53,7 @@ type SendMessageOptions struct {
 type SendMessageResult = tgbotapiobject.Message
 
 // SendMessage sends new message.
-func (b *Bot) SendMessage(
-	ctx context.Context,
-	options SendMessageOptions,
-) (SendMessageResult, error) {
+func (b *Bot) SendMessage(ctx context.Context, options SendMessageOptions) (SendMessageResult, error) {
 	var data SendMessageResult
 	if err := b.request(ctx, "sendMessage", options, &data); err != nil {
 		return SendMessageResult{}, err

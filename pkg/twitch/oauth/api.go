@@ -1,19 +1,25 @@
 package oauth
 
 import (
-	"net/http"
+	"time"
+
+	httpext "github.com/qbnk/twitch-announcer/pkg/http-ext"
 )
 
 type API struct {
-	client       *http.Client
+	client       *httpext.Client
 	clientID     string
 	clientSecret string
 }
 
-func New(clientID, clientSecret string) *API {
+func New(clientID, clientSecret string, timeout time.Duration, rps int) *API {
 	return &API{
-		client:       &http.Client{},
+		client:       httpext.New(timeout, rps),
 		clientID:     clientID,
 		clientSecret: clientSecret,
 	}
+}
+
+func NewDefault(clientID, clientSecret string) *API {
+	return New(clientID, clientSecret, 0, 0)
 }
