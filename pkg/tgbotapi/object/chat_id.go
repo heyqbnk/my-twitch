@@ -1,18 +1,20 @@
 package tgbotapiobject
 
-import "encoding/json"
-
 type ChatID struct {
-	channel string
-	id      int64
+	// channel string
+	id int64
 }
 
-func (c ChatID) Channel() (string, bool) {
-	if len(c.channel) == 0 {
-		return "", false
-	}
+// func (c ChatID) Channel() (string, bool) {
+// 	if len(c.channel) == 0 {
+// 		return "", false
+// 	}
+//
+// 	return c.channel, true
+// }
 
-	return c.channel, true
+func (c ChatID) IsEmpty() bool {
+	return c.id == 0
 }
 
 func (c ChatID) ID() (int64, bool) {
@@ -23,30 +25,16 @@ func (c ChatID) ID() (int64, bool) {
 	return c.id, true
 }
 
-func (c ChatID) MarshalJSON() ([]byte, error) {
-	if len(c.channel) == 0 {
-		return json.Marshal(c.id)
-	}
+// // NewStringChatID returns an instance of ChatID with specified channel. In case,
+// // the channel is empty, the panic will be called.
+// func NewStringChatID(channelUsername string) ChatID {
+// 	if len(channelUsername) == 0 {
+// 		panic("channelUsername is empty")
+// 	}
+//
+// 	return ChatID{channel: channelUsername}
+// }
 
-	return json.Marshal(c.channel)
-}
-
-// NewStringChatID returns an instance of ChatID with specified channel. In case,
-// the channel is empty, the panic will be called.
-func NewStringChatID(channelUsername string) ChatID {
-	if len(channelUsername) == 0 {
-		panic("channelUsername is empty")
-	}
-
-	return ChatID{channel: channelUsername}
-}
-
-// NewIntChatID returns an instance of ChatID with specified channel identifier.
-// In case, the id is zero, the panic will be called.
-func NewIntChatID(id int64) ChatID {
-	if id == 0 {
-		panic("id is zero")
-	}
-
+func ChatIDInt64(id int64) ChatID {
 	return ChatID{id: id}
 }

@@ -8,20 +8,24 @@ import (
 	"log"
 	"math/rand"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
+
+	"github.com/qbnk/twitch-announcer/internal/api"
+	"github.com/qbnk/twitch-announcer/internal/config"
 	"github.com/qbnk/twitch-announcer/internal/logger"
 	"github.com/qbnk/twitch-announcer/internal/services/telegram"
 	"github.com/qbnk/twitch-announcer/internal/services/twitch"
 
-	"github.com/qbnk/twitch-announcer/internal/api"
-	"github.com/qbnk/twitch-announcer/internal/config"
+	"github.com/qbnk/twitch-announcer/pkg/twitch/helix"
 )
 
 func main() {
 	cfg := getConfig()
+	ctx := context.Background()
 
 	// Disable gin debug mode in case, we are currently not debugging.
 	if !cfg.Debug {
@@ -32,10 +36,10 @@ func main() {
 	sentryHub := getSentryHub(cfg)
 
 	// Create secret which will be used in Twitch webhooks.
-	subscriptionSecret := strconv.Itoa(rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+	subscriptionSecret := getTwitchSubscriptionSecret()
 
 	// Create services.
-	customLog := logger.New()
+	customLogFactory := logger.NewFactory()
 	telegramService := telegram.New(cfg.Telegram.SecretToken)
 	twitchService := twitch.New(
 		subscriptionSecret,
@@ -43,49 +47,72 @@ func main() {
 		cfg.Twitch.API.ClientSecret,
 	)
 
-	// Create stream online subscription.
-	err := ensureStreamOnlineSubscription(cfg, twitchService, subscriptionSecret)
-	if err != nil {
-		logFatalError(err, sentryHub)
-	}
+	// TODO: Graceful shutdown?
 
-	if err := api.Run(cfg, sentryHub, telegramService, twitchService, customLog); err != nil {
-		logFatalError(err, sentryHub)
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// HTTP API goroutine.
+	go func() {
+		defer wg.Done()
+
+		if err := api.Run(cfg, sentryHub, telegramService, twitchService, customLogFactory); err != nil {
+			logFatalError(err, sentryHub)
+		}
+	}()
+
+	// HTTP API goroutine.
+	go func() {
+		defer wg.Done()
+
+		if err := ensureSubscriptionsExist(ctx, cfg, twitchService, subscriptionSecret); err != nil {
+			logFatalError(err, sentryHub)
+		}
+	}()
+
+	wg.Wait()
 }
 
-// Checks if "stream.online" subscription exists. In case, it does not, function
-// creates it.
-func ensureStreamOnlineSubscription(cfg config.Config, twitchService *twitch.Service, secret string) error {
-	ctx := context.Background()
-
+// Checks if required twitch subscriptions are configured properly.
+func ensureSubscriptionsExist(
+	ctx context.Context,
+	cfg config.Config,
+	twitchService *twitch.Service,
+	secret string,
+) error {
 	// Get list of all eventsub subscriptions.
 	subs, err := twitchService.GetSubscriptions(ctx)
 	if err != nil {
 		return fmt.Errorf("get subscriptions: %v", err)
 	}
 
+	// This value is expected webhook callback URL.
 	callbackURL := cfg.Http.BaseURL + cfg.Twitch.Webhook.URL
+
+	// List of subscriptions we need.
+	requiredSubs := map[helix.SubscriptionType]bool{
+		helix.SubscriptionTypeStreamOffline: true,
+		helix.SubscriptionTypeStreamOnline:  true,
+	}
 
 	// Try to find out if current server is already receiving events from Twitch.
 	for _, sub := range subs {
-		// FIXME: "stream.online" only. We are currently looking for all
-		//  events.
-		if sub.Transport.Callback == callbackURL {
+		if sub.Transport.Callback == callbackURL && requiredSubs[sub.Type] {
 			// Eventsub subscription already exists. We should delete it.
 			if err := twitchService.DeleteSubscription(ctx, sub.ID); err != nil {
 				return fmt.Errorf("delete subscription: %v", err)
 			}
+
 			break
 		}
 	}
 
-	// Create new subscription.
-	err = twitchService.CreateStreamOnlineSubscription(
-		ctx, cfg.Twitch.ChannelID, callbackURL, secret,
-	)
-	if err != nil {
-		return fmt.Errorf("create stream.online subscription: %v", err)
+	// Create all required subscriptions.
+	for subType := range requiredSubs {
+		err = twitchService.CreateSubscription(ctx, subType, cfg.Twitch.ChannelID, callbackURL, secret)
+		if err != nil {
+			return fmt.Errorf("create %s subscription: %v", subType, err)
+		}
 	}
 
 	return nil
@@ -118,6 +145,11 @@ func getSentryHub(cfg config.Config) *sentry.Hub {
 	}
 
 	return sentry.NewHub(sentryClient, sentry.NewScope())
+}
+
+// Returns secret used during creating a subscription via Twitch.
+func getTwitchSubscriptionSecret() string {
+	return strconv.Itoa(rand.New(rand.NewSource(time.Now().UnixNano())).Int())
 }
 
 func logFatalError(err error, sentryHub *sentry.Hub) {

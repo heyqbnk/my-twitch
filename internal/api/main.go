@@ -5,8 +5,7 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
-	"github.com/qbnk/twitch-announcer/internal/api/handler"
-
+	handlerswebhookcallback "github.com/qbnk/twitch-announcer/internal/api/handlers/webhook-callback"
 	"github.com/qbnk/twitch-announcer/internal/config"
 	"github.com/qbnk/twitch-announcer/internal/logger"
 	"github.com/qbnk/twitch-announcer/internal/services/telegram"
@@ -19,13 +18,13 @@ func Run(
 	sentryHub *sentry.Hub,
 	telegramService *telegram.Service,
 	twitchService *twitch.Service,
-	log *logger.Logger,
+	logger *logger.Factory,
 ) error {
-	hnd := handler.New(cfg.Twitch.ChannelID, cfg.Telegram.ChatID, twitchService, telegramService, log)
-
 	app := gin.Default()
 	app.Use(newSentryMiddleware(sentryHub))
-	app.POST(cfg.Twitch.Webhook.URL, hnd.WebhookCallback)
+
+	handler := handlerswebhookcallback.New(cfg.Twitch.ChannelID, cfg.Telegram.ChatID, twitchService, telegramService, logger)
+	handler.Apply(app, cfg.Twitch.Webhook.URL)
 
 	if err := app.Run(fmt.Sprintf(":%d", cfg.Http.Port)); err != nil {
 		return fmt.Errorf("run http server: %w", err)

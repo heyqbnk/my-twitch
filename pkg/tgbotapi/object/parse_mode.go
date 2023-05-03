@@ -7,3 +7,7 @@ const (
 )
 
 type ParseMode string
+
+func (p ParseMode) String() string {
+	return string(p)
+}

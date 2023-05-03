@@ -32,15 +32,21 @@ type SendPhotoOptions struct {
 	// using multipart/form-data. The photo must be at most 10 MB in size.
 	// The photo's width and height must not exceed 10000 in total. Width and
 	// height ratio must be at most 20.
-	Photo string `json:"photo"`
+	Photo tgbotapiobject.InputFile `json:"photo"`
 }
 
 type SendPhotoResult = tgbotapiobject.Message
 
 // SendPhoto sends a new photo.
 func (b *Bot) SendPhoto(ctx context.Context, options SendPhotoOptions) (SendPhotoResult, error) {
+	params := requestParams{}.
+		ChatID("chat_id", options.ChatID).
+		String("caption", options.Caption, _reqParamOptionOptional).
+		String("parse_mode", options.ParseMode.String(), _reqParamOptionOptional).
+		InputFile("photo", options.Photo)
+
 	var data SendPhotoResult
-	if err := b.request(ctx, "sendPhoto", options, &data); err != nil {
+	if err := b.request(ctx, "sendPhoto", params, &data); err != nil {
 		return SendPhotoResult{}, fmt.Errorf("send request: %w", err)
 	}
 

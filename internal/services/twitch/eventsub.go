@@ -9,10 +9,10 @@ import (
 	"github.com/qbnk/twitch-announcer/internal/models"
 )
 
-// CreateStreamOnlineSubscription creates new eventsub subscription for
-// event "stream.online".
-func (s *Service) CreateStreamOnlineSubscription(
+// CreateSubscription creates specified Eventsub subscription.
+func (s *Service) CreateSubscription(
 	ctx context.Context,
+	subType helix.SubscriptionType,
 	channelID, callbackURL, secret string,
 ) error {
 	accessToken, err := s.getAccessToken(ctx)
@@ -23,7 +23,7 @@ func (s *Service) CreateStreamOnlineSubscription(
 	_, err = withAuthRetry[[]helix.EventsubSubscription](
 		ctx, s, func(ctx context.Context) ([]helix.EventsubSubscription, error) {
 			return s.api.CreateSubscription(
-				ctx, accessToken, helix.SubscriptionTypeStreamOnline,
+				ctx, accessToken, subType,
 				1, helix.SubscriptionCondition{BroadcasterUserID: channelID},
 				helix.SubscriptionWebhookTransport{
 					Method:   "webhook",

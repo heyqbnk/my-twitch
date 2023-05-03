@@ -3,6 +3,8 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/qbnk/twitch-announcer/pkg/tgbotapi"
@@ -23,22 +25,17 @@ func New(secretToken string) *Service {
 func (s *Service) SendStreamStartedMessage(
 	ctx context.Context,
 	chatID int64,
-	streamTitle, gameName string, thumbnailURL string,
+	streamTitle, gameName, thumbnailURL string,
 ) error {
-	// _, err := s.tgbot.SendPhoto(ctx, tgbotapi.
-	// 	NewSendMessageBuilder().
-	// 	SetChatID(chatID).
-	// 	// AddStyledText(
-	// 	// 	"Это сообщение из нашего ультра мега нового, супер молодежного анонсера.",
-	// 	// 	tgbotapiobject.MessageEntityTypeItalic,
-	// 	// ).
-	// 	AddText(streamTitle).
-	// 	AddText("\ntwitch.tv/qbnk").
-	// 	Build())
+	thumbnailBytes, err := downloadFile(thumbnailURL)
+	if err != nil {
+		return fmt.Errorf("download file: %w", err)
+	}
 
-	options := tgbotapi.NewSendPhotoBuilder(tgbotapiobject.NewIntChatID(chatID), thumbnailURL)
+	options := tgbotapi.BeginSendPhotoOptions(
+		tgbotapiobject.ChatIDInt64(chatID), tgbotapiobject.InputFileFromData(thumbnailBytes),
+	)
 
-	// Configure caption.
 	options.Caption.
 		Bold(streamTitle).
 		NewLine().
@@ -47,10 +44,25 @@ func (s *Service) SendStreamStartedMessage(
 		NewLine().
 		Text("— ").URL("twitch.tv/qbnk")
 
-	_, err := s.tgbot.SendPhoto(ctx, options.Build())
-	if err != nil {
+	if _, err = s.tgbot.SendPhoto(ctx, options.Build()); err != nil {
 		return fmt.Errorf("send photo via API: %v", err)
 	}
 
 	return nil
+}
+
+func downloadFile(url string) ([]byte, error) {
+	response, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("get file: %w", err)
+	}
+
+	defer response.Body.Close()
+
+	content, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response content: %w", err)
+	}
+
+	return content, nil
 }

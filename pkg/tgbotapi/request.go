@@ -1,7 +1,6 @@
 package tgbotapi
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,25 +8,24 @@ import (
 	"net/http"
 )
 
-// Request performs custom request with specified method and parameters.
-func (b *Bot) Request(
-	ctx context.Context,
-	method string,
-	params map[string]any,
-) (any, error) {
-	var data interface{}
-	if err := b.request(ctx, method, params, &data); err != nil {
-		return nil, err
-	}
-	return data, nil
-}
+// // Request performs custom request with specified method and parameters.
+// func (b *Bot) Request(
+// 	ctx context.Context,
+// 	method string,
+// 	params map[string]any,
+// ) (any, error) {
+// 	var data interface{}
+// 	if err := b.request(ctx, method, params, &data); err != nil {
+// 		return nil, err
+// 	}
+// 	return data, nil
+// }
 
 // Performs request with specified method and parameters.
-func (b *Bot) request(ctx context.Context, method string, params any, dest interface{}) error {
-	// Prepare request body.
-	body, err := json.Marshal(params)
+func (b *Bot) request(ctx context.Context, method string, params requestParams, dest interface{}) error {
+	buffer, contentType, err := params.MarshalMultipartFormData()
 	if err != nil {
-		return fmt.Errorf("marshal request body: %v", err)
+		return fmt.Errorf("marshal multipart form data: %w", err)
 	}
 
 	// Create request.
@@ -35,23 +33,20 @@ func (b *Bot) request(ctx context.Context, method string, params any, dest inter
 		ctx,
 		http.MethodPost,
 		fmt.Sprintf("https://api.telegram.org/bot%s/%s", b.token, method),
-		bytes.NewBuffer(body),
+		&buffer,
 	)
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", contentType)
 
-	// Send request.
 	res, err := b.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error response: %v", err)
 	}
 
-	// Read response.
 	responseBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("read response: %v", err)
 	}
 
-	// Extract response JSON.
 	var response struct {
 		Result      requestResult `json:"result"`
 		ErrorCode   int           `json:"error_code"`
@@ -61,13 +56,14 @@ func (b *Bot) request(ctx context.Context, method string, params any, dest inter
 		return ErrUnexpectedResponse
 	}
 
-	// Error occurred.
 	if response.ErrorCode != 0 {
 		return fmt.Errorf("%w: %d %s", ErrUnsuccessfulResponse, response.ErrorCode, response.Description)
 	}
+
 	if err := json.Unmarshal(response.Result.Bytes, dest); err != nil {
 		return fmt.Errorf("%w: %v", ErrIncorrectResponse, err)
 	}
+
 	return nil
 }
 

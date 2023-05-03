@@ -1,7 +1,8 @@
 package helix
 
 const (
-	SubscriptionTypeStreamOnline SubscriptionType = "stream.online"
+	SubscriptionTypeStreamOnline  SubscriptionType = "stream.online"
+	SubscriptionTypeStreamOffline SubscriptionType = "stream.offline"
 )
 
 type SubscriptionType string
@@ -24,6 +25,6 @@ type EventsubSubscriptionTransport struct {
 type EventsubSubscription struct {
 	ID        string                        `json:"id"`
 	Status    string                        `json:"status"`
-	Type      string                        `json:"type"`
+	Type      SubscriptionType              `json:"type"`
 	Transport EventsubSubscriptionTransport `json:"transport"`
 }
