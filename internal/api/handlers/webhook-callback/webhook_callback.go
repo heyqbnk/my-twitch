@@ -1,6 +1,7 @@
 package webhookcallback
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -47,19 +48,16 @@ func (h *Handler) webhookCallback(ctx *gin.Context) (string, error) {
 		return "", fmt.Errorf("get raw data: %w", err)
 	}
 
-	// FIXME
-	// isValid := h.twitch.ValidateWebhookSignature(
-	// 	ctx.GetHeader(_webhookTwitchMessageIDHeader),
-	// 	ctx.GetHeader(_webhookTwitchMessageTimestampHeader),
-	// 	string(body),
-	// 	ctx.GetHeader(_webhookTwitchMessageSignatureHeader),
-	// )
-	//
-	// if !isValid {
-	// 	logger.Error(errors.New("signature invalid"))
-	// 	ctx.AbortWithStatus(http.StatusBadRequest)
-	// 	return
-	// }
+	isValid := h.twitch.ValidateWebhookSignature(
+		ctx.GetHeader(_webhookTwitchMessageIDHeader),
+		ctx.GetHeader(_webhookTwitchMessageTimestampHeader),
+		string(body),
+		ctx.GetHeader(_webhookTwitchMessageSignatureHeader),
+	)
+
+	if !isValid {
+		return "", errors.New("signature invalid")
+	}
 
 	switch ctx.GetHeader(_webhookTwitchMessageType) {
 	// In case, we received "webhook_callback_verification" message type,
