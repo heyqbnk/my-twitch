@@ -1,4 +1,4 @@
-package tgbotapiobject
+package object
 
 // Reference: https://core.telegram.org/bots/api#webappdata
 

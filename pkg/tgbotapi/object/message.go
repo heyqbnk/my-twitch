@@ -1,6 +1,8 @@
-package tgbotapiobject
+package object
 
-import "time"
+import (
+	"time"
+)
 
 type CommandParams struct {
 	// Command name including slash sign ("/start").
@@ -153,7 +155,7 @@ type Message struct {
 	// Optional. Message is a shared location, information about the location.
 	Location *Location `json:"location,omitempty"`
 
-	// Optional. New members that were added to the group or supergroup and
+	// Optional. NewMessageEntity members that were added to the group or supergroup and
 	// information about them (the bot itself may be one of these members).
 	NewChatMembers []User `json:"new_chat_members,omitempty"`
 
@@ -253,7 +255,7 @@ type Message struct {
 // IsCommand returns true in case, current message starts with command.
 func (m *Message) IsCommand() bool {
 	for _, e := range m.Entities {
-		if e.Type == MessageEntityTypeBotCommand && e.Offset == 0 {
+		if e.Type() == MessageEntityTypeBotCommand && e.Offset() == 0 {
 			return true
 		}
 	}
@@ -264,10 +266,10 @@ func (m *Message) IsCommand() bool {
 // See IsCommand for more.
 func (m *Message) CommandParams() (CommandParams, bool) {
 	for _, e := range m.Entities {
-		if e.Type == MessageEntityTypeBotCommand && e.Offset == 0 {
+		if e.Type() == MessageEntityTypeBotCommand && e.Offset() == 0 {
 			var (
-				commandEndsAt = e.Offset + e.Length
-				name          = m.Text[e.Offset:commandEndsAt]
+				commandEndsAt = e.Offset() + e.Length()
+				name          = m.Text[e.Offset():commandEndsAt]
 				args          = ""
 			)
 

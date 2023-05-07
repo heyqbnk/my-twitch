@@ -12,5 +12,5 @@ type Twitch interface {
 }
 
 type Telegram interface {
-	SendStreamStartedMessage(ctx context.Context, chatID int64, streamTitle, gameName, thumbnailURL string) error
+	SendStreamStartedMessage(ctx context.Context, chatID int64, channel, streamTitle, gameName string) error
 }

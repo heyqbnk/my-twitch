@@ -1,4 +1,4 @@
-package tgbotapiobject
+package object
 
 type ReplyKeyboardRemove struct {
 }

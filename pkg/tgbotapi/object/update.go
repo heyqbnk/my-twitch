@@ -1,7 +1,7 @@
-package tgbotapiobject
+package object
 
 type Update struct {
-	// Optional. New incoming channel post of any kind - text, photo,
+	// Optional. NewMessageEntity incoming channel post of any kind - text, photo,
 	// sticker, etc.
 	ChannelPost *Message `json:"channel_post,omitempty"`
 
@@ -20,21 +20,21 @@ type Update struct {
 	// these updates.
 	ChatJoinRequest *ChatJoinRequest `json:"chat_join_request,omitempty"`
 
-	// Optional. New incoming callback query.
+	// Optional. NewMessageEntity incoming callback query.
 	CallbackQuery *CallbackQuery `json:"callback_query,omitempty"`
 
-	// Optional. New version of a message that is known to the bot and was
+	// Optional. NewMessageEntity version of a message that is known to the bot and was
 	// edited.
 	EditedMessage *Message `json:"edited_message,omitempty"`
 
-	// Optional. New version of a channel post that is known to the bot and
+	// Optional. NewMessageEntity version of a channel post that is known to the bot and
 	// was edited.
 	EditedChannelPost *Message `json:"edited_channel_post,omitempty"`
 
-	// Optional. New incoming inline query.
+	// Optional. NewMessageEntity incoming inline query.
 	InlineQuery *InlineQuery `json:"inline_query,omitempty"`
 
-	// Optional. New incoming message of any kind - text, photo, sticker, etc.
+	// Optional. NewMessageEntity incoming message of any kind - text, photo, sticker, etc.
 	Message *Message `json:"message,omitempty"`
 
 	// Optional. The bot's chat member status was updated in a chat. For
@@ -42,11 +42,11 @@ type Update struct {
 	// or unblocked by the user.
 	MyChatMember *ChatMemberUpdated `json:"my_chat_member,omitempty"`
 
-	// Optional. New incoming pre-checkout query. Contains full information
+	// Optional. NewMessageEntity incoming pre-checkout query. Contains full information
 	// about checkout.
 	PreCheckoutQuery *PreCheckoutQuery `json:"pre_checkout_query,omitempty"`
 
-	// Optional. New poll state. Bots receive only updates about stopped
+	// Optional. NewMessageEntity poll state. Bots receive only updates about stopped
 	// polls and polls, which are sent by the bot.
 	Poll *Poll `json:"poll,omitempty"`
 
@@ -54,7 +54,7 @@ type Update struct {
 	// receive new votes only in polls that were sent by the bot itself.
 	PollAnswer *PollAnswer `json:"poll_answer,omitempty"`
 
-	// Optional. New incoming shipping query. Only for invoices with flexible
+	// Optional. NewMessageEntity incoming shipping query. Only for invoices with flexible
 	// price.
 	ShippingQuery *ShippingQuery `json:"shipping_query,omitempty"`
 

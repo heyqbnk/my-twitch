@@ -38,8 +38,8 @@ package tgbotapi
 // func (b *Bot) GetUpdates(
 // 	ctx context.Context,
 // 	options GetUpdatesOptions,
-// ) ([]tgbotapiobject.Update, error) {
-// 	var data []tgbotapiobject.Update
+// ) ([]object.Update, error) {
+// 	var data []object.Update
 // 	if err := b.request(ctx, "getUpdates", options, &data); err != nil {
 // 		return nil, err
 // 	}

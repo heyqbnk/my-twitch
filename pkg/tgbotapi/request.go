@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/qbnk/twitch-announcer/pkg/tgbotapi/shapes"
 )
 
 // // Request performs custom request with specified method and parameters.
@@ -22,7 +24,7 @@ import (
 // }
 
 // Performs request with specified method and parameters.
-func (b *Bot) request(ctx context.Context, method string, params requestParams, dest interface{}) error {
+func (b *Bot) request(ctx context.Context, method string, params shapes.Object, dest interface{}) error {
 	buffer, contentType, err := params.MarshalMultipartFormData()
 	if err != nil {
 		return fmt.Errorf("marshal multipart form data: %w", err)

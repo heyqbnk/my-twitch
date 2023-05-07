@@ -2,7 +2,7 @@ package tgbotapi
 
 // type UpdatesChannelEvent struct {
 // 	// List of received events.
-// 	Updates []tgbotapiobject.Update
+// 	Updates []object.Update
 // 	// Occurred error.
 // 	Error error
 // }

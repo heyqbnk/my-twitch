@@ -3,7 +3,6 @@ package webhookcallback
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,10 +27,10 @@ func (h *Handler) processStreamOnlineMessage(ctx *gin.Context, bodyBytes []byte)
 		return fmt.Errorf("get stream from Twitch: %w", err)
 	}
 
-	streamURL := strings.Replace(stream.ThumbnailURL, "{width}", "960", 1)
-	streamURL = strings.Replace(streamURL, "{height}", "540", 1)
-
-	err = h.telegram.SendStreamStartedMessage(ctx, h.chatID, stream.Title, stream.GameName, streamURL)
+	err = h.telegram.SendStreamStartedMessage(
+		ctx, h.chatID, body.Event.BroadcasterUserLogin, stream.Title,
+		stream.GameName,
+	)
 	if err != nil {
 		return fmt.Errorf("send stream started message: %w", err)
 	}

@@ -1,14 +1,14 @@
-package tgbotapiobject
+package object
 
 // Reference: https://core.telegram.org/bots/api#inputfile
 
 type InputFile struct {
 	url  string
-	data []byte
+	blob []byte
 }
 
 func (f InputFile) IsEmpty() bool {
-	return len(f.url) == 0 && len(f.data) == 0
+	return len(f.url) == 0 && len(f.blob) == 0
 }
 
 func (f InputFile) URL() (url string, ok bool) {
@@ -19,16 +19,16 @@ func (f InputFile) URL() (url string, ok bool) {
 	return f.url, true
 }
 
-func (f InputFile) Data() (data []byte, ok bool) {
-	if len(f.data) == 0 {
+func (f InputFile) Blob() (blob []byte, ok bool) {
+	if len(f.blob) == 0 {
 		return nil, false
 	}
 
-	return f.data, true
+	return f.blob, true
 }
 
-func InputFileFromData(data []byte) InputFile {
-	return InputFile{data: data}
+func InputFileFromBlob(blob []byte) InputFile {
+	return InputFile{blob: blob}
 }
 
 func InputFileFromURL(url string) InputFile {

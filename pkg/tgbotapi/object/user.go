@@ -1,11 +1,11 @@
-package tgbotapiobject
+package object
+
+import "github.com/qbnk/twitch-announcer/pkg/tgbotapi/shapes"
+
+// Reference: https://core.telegram.org/bots/api#user
 
 type User struct {
-	// Unique identifier for this user or bot.
-	ID int `json:"id"`
-
-	// True, if this user is a bot.
-	IsBot bool `json:"is_bot"`
+	shape shapes.Object
 
 	// User's or bot's first name.
 	FirstName string `json:"first_name"`
@@ -37,4 +37,30 @@ type User struct {
 	// Optional. True, if the bot supports inline queries. Returned only in
 	// getMe method.
 	SupportsInlineQueries bool `json:"supports_inline_queries"`
+}
+
+func NewUser(id int) User {
+	user := User{shape: shapes.Object{}}
+	user.SetID(id)
+
+	return user
+}
+
+func (u *User) SetID(id int) *User {
+	u.shape.Int("id", id)
+	return u
+}
+
+// func (u *User) SetIsBot(isBot bool) *User {
+// 	u.shape.Bool("is_bot", isBot)
+// 	return u
+// }
+
+func (u *User) SetFirstName(firstName string) *User {
+	u.shape.String("first_name", firstName)
+	return u
+}
+
+func (u *User) Shape() shapes.Object {
+	return u.shape
 }
