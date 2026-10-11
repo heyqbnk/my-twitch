@@ -1,46 +1,46 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
-import type { ChatMessage, ChatStatus } from '../composables/useTwitchChat'
-import { actorColor } from '../scene/actorStyle'
-import { ROLE_COLORS } from '../twitch/badges'
-import MessageText from './MessageText.vue'
-import RoleBadge from './RoleBadge.vue'
+import { computed, nextTick, ref, watch } from 'vue';
+import type { ChatMessage, ChatStatus } from '../composables/useTwitchChat';
+import { actorColor } from '../scene/actorStyle';
+import { ROLE_COLORS } from '../twitch/badges';
+import MessageText from './MessageText.vue';
+import RoleBadge from './RoleBadge.vue';
 
 const props = defineProps<{
-  channel: string
-  status: ChatStatus
-  error: string | null
-  messages: ChatMessage[]
-}>()
+  channel: string;
+  status: ChatStatus;
+  error: string | null;
+  messages: ChatMessage[];
+}>();
 
 const STATUS_LABELS: Record<ChatStatus, string> = {
   idle: 'Нет канала',
   connecting: 'Подключение…',
   connected: 'В чате',
   disconnected: 'Переподключение…',
-}
-const statusLabel = computed(() => STATUS_LABELS[props.status])
+};
+const statusLabel = computed(() => STATUS_LABELS[props.status]);
 
-const list = ref<HTMLElement | null>(null)
-const stickToBottom = ref(true)
+const list = ref<HTMLElement | null>(null);
+const stickToBottom = ref(true);
 
 function onScroll() {
-  const el = list.value
-  if (!el) return
-  stickToBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+  const el = list.value;
+  if (!el) return;
+  stickToBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
 }
 
 watch(
   () => props.messages.length,
   async () => {
-    if (!stickToBottom.value) return
-    await nextTick()
-    list.value?.scrollTo({ top: list.value.scrollHeight })
+    if (!stickToBottom.value) return;
+    await nextTick();
+    list.value?.scrollTo({ top: list.value.scrollHeight });
   },
-)
+);
 
 function formatTime(ts: number) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 </script>
 
@@ -70,7 +70,7 @@ function formatTime(ts: number) {
           class="chat__author"
           :class="{ 'chat__author--role': msg.role }"
           :style="{ color: msg.role ? ROLE_COLORS[msg.role] : actorColor(msg) }"
-          >{{ msg.author }}</span>:
+        >{{ msg.author }}</span>:
         <MessageText class="chat__text" :message="msg" />
       </li>
     </ul>
@@ -138,7 +138,8 @@ function formatTime(ts: number) {
   background: color-mix(in srgb, var(--first-msg) 15%, transparent);
 }
 
-/* Награда «Выделить сообщение»: янтарная полоса слева и тёплый градиент, чтобы не путать с первым сообщением */
+/* Награда «Выделить сообщение»: янтарная полоса слева и тёплый градиент,
+   чтобы не путать с первым сообщением */
 .chat__message--highlighted {
   margin-inline: -16px;
   padding-inline: 12px 16px;

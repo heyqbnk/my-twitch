@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { roleBadge, type ChatRole } from '../twitch/badges'
+import { computed } from 'vue';
+import { roleBadge, type ChatRole } from '../twitch/badges';
 
 // size — сторона значка в пикселях
-const props = defineProps<{ role: ChatRole; size: number }>()
+const props = defineProps<{ role: ChatRole; size: number }>();
 
 // Исходник значка — 18px; крупнее него берём картинки побольше
-const image = computed(() => roleBadge(props.role, props.size > 18))
+const image = computed(() => roleBadge(props.role, props.size > 18));
 </script>
 
 <template>

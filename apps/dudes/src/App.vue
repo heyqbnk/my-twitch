@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import ChannelView from './components/ChannelView.vue'
-import { useChannelQuery } from './composables/useChannelQuery'
+import ChannelView from './components/ChannelView.vue';
+import { useChannelQuery } from './composables/useChannelQuery';
 
-const channel = useChannelQuery()
+const channel = useChannelQuery();
 </script>
 
 <template>

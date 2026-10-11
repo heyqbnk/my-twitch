@@ -1,347 +1,356 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
-import { useActivityGrowth } from '../composables/useActivityGrowth'
-import { useKeepInside } from '../composables/useKeepInside'
-import { useMessageParts } from '../composables/useMessageParts'
-import type { SceneActor } from '../composables/useSceneActors'
-import { DOOR_JAMB, DOOR_LEAF, useSceneDoors, type Side } from '../composables/useSceneDoors'
-import { useWandering, WALK_CYCLE_MS } from '../composables/useWandering'
-import { WALKER } from '../scene/walkerSprite'
-import { ROLE_COLORS, roleRank } from '../twitch/badges'
-import { soloEmote } from '../twitch/emotes'
-import ChatEmote from './ChatEmote.vue'
-import MessageText from './MessageText.vue'
-import RoleBadge from './RoleBadge.vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
+import { useActivityGrowth } from '../composables/useActivityGrowth';
+import { useKeepInside } from '../composables/useKeepInside';
+import { useMessageParts } from '../composables/useMessageParts';
+import type { SceneActor } from '../composables/useSceneActors';
+import { DOOR_JAMB, DOOR_LEAF, useSceneDoors, type Side } from '../composables/useSceneDoors';
+import { useWandering, WALK_CYCLE_MS } from '../composables/useWandering';
+import { WALKER } from '../scene/walkerSprite';
+import { ROLE_COLORS, roleRank } from '../twitch/badges';
+import { soloEmote } from '../twitch/emotes';
+import ChatEmote from './ChatEmote.vue';
+import MessageText from './MessageText.vue';
+import RoleBadge from './RoleBadge.vue';
 
-const BUBBLE_DURATION = 6000
-const SOLO_EMOTE_SIZE = 37
-const NAME_FLIGHT_MS = 300
+const BUBBLE_DURATION = 6000;
+const SOLO_EMOTE_SIZE = 37;
+const NAME_FLIGHT_MS = 300;
 // Значок роли перед ником: над головой и в облачке ник 11px
-const BADGE_SIZE = 13
+const BADGE_SIZE = 13;
 
 // scale — экранных пикселей на пиксель спрайта; exiting — пропал из списка и уходит со сцены
-const props = defineProps<{ actor: SceneActor; scale: number; exiting: boolean }>()
+const props = defineProps<{ actor: SceneActor; scale: number; exiting: boolean }>();
 // Вышел за дверь — можно убирать
-const emit = defineEmits<{ exited: [] }>()
+const emit = defineEmits<{ exited: [] }>();
 
 // Активные зрители крупнее: px — итоговый масштаб с учётом роста
-const growth = useActivityGrowth(() => props.actor.lastMessage)
-const px = computed(() => props.scale * growth.value)
+const growth = useActivityGrowth(() => props.actor.lastMessage);
+const px = computed(() => props.scale * growth.value);
 
 function paint(fill: string): string {
-  if (fill === 'shirt') return props.actor.color
-  if (fill === 'hair') return props.actor.hairColor
-  return fill
+  if (fill === 'shirt') return props.actor.color;
+  if (fill === 'hair') return props.actor.hairColor;
+  return fill;
 }
 
 // Головной убор прячет волосы над собой: человечек обрезается по его clip
-const clipId = useId()
+const clipId = useId();
 const headwearClip = computed(
-  () => props.actor.accessories.map((a) => WALKER.accessories[a.name].clip).find((clip) => clip !== null) ?? null,
-)
+  () => props.actor.accessories
+    .map(a => WALKER.accessories[a.name].clip)
+    .find(clip => clip !== null) ?? null,
+);
 
 // Высота шеста таблички: от кисти до чуть выше макушки
-const POLE_HEIGHT = WALKER.holdHand.y + 3
+const POLE_HEIGHT = WALKER.holdHand.y + 3;
 
 // У владельца, модераторов и VIP ник жирный и в цвет роли — и над головой, и в облачке
-const roleColor = computed(() => (props.actor.role ? ROLE_COLORS[props.actor.role] : null))
+const roleColor = computed(() => (props.actor.role ? ROLE_COLORS[props.actor.role] : null));
 
-const messageParts = useMessageParts()
+const messageParts = useMessageParts();
 // Сообщение из одного эмодзи человечек показывает на табличке вместо облачка
-const emoteOnly = computed(() => soloEmote(messageParts(props.actor.lastMessage)))
+const emoteOnly = computed(() => soloEmote(messageParts(props.actor.lastMessage)));
 
-const bubbleVisible = ref(false)
+const bubbleVisible = ref(false);
 // Слой человечка: старшие роли поверх младших и зрителей без роли, даже молчащие.
 // Внутри одного старшинства говорящий поверх молчащих. Двери всё равно выше всех
-const zIndex = computed(() => roleRank(props.actor.role) * 2 + (bubbleVisible.value ? 1 : 0))
+const zIndex = computed(() => roleRank(props.actor.role) * 2 + (bubbleVisible.value ? 1 : 0));
 // Смена ключа перемонтирует тело и перезапускает анимацию прыжка
-const jumpKey = ref(0)
-let bubbleTimer: ReturnType<typeof setTimeout> | null = null
+const jumpKey = ref(0);
+let bubbleTimer: ReturnType<typeof setTimeout> | null = null;
 
-const root = ref<HTMLElement | null>(null)
-const { x, facing, walking, duration, pace, stageWidth, currentX, place, walkTo, wander, stop } = useWandering(
+const root = ref<HTMLElement | null>(null);
+const {
+  x, facing, walking, duration, pace, stageWidth, currentX, place, walkTo, wander, stop,
+} = useWandering(
   root,
   px,
-)
+);
 
 // На сцену человечек заходит из-за края, ближайшего к его месту, через дверь у этого края,
 // а уходит через дверь у ближайшего к нему края, ускорив шаг
-const EXIT_SPEED = 1.3
+const EXIT_SPEED = 1.3;
 // Зазор между человечком и створкой, в пикселях спрайта
-const DOOR_GAP = 2
+const DOOR_GAP = 2;
 // Войдя, человечек проходит от двери до GREET_MAX_DISTANCE экранных пикселей
 // и машет зрителям WAVE_MS мс: взмах туда-обратно за WAVE_CYCLE_MS
-const GREET_MAX_DISTANCE = 100
-const WAVE_MS = 1600
-const WAVE_CYCLE_MS = 400
+const GREET_MAX_DISTANCE = 100;
+const WAVE_MS = 1600;
+const WAVE_CYCLE_MS = 400;
 
-const doors = useSceneDoors()
+const doors = useSceneDoors();
 // Пока человечек за краем сцены, его не видно — и облачко с ником не прижимаются к краю
-const hidden = ref(true)
+const hidden = ref(true);
 // Дверь, которую держит человечек
-let heldDoor: Side | null = null
+let heldDoor: Side | null = null;
 // Номер текущего сценария (вход, уход, возвращение): новый прерывает предыдущий
-let scenario = 0
+let scenario = 0;
 // Стоит лицом к зрителям и машет
-const waving = ref(false)
-let waveTimer: ReturnType<typeof setTimeout> | null = null
+const waving = ref(false);
+let waveTimer: ReturnType<typeof setTimeout> | null = null;
 
-const nearestSide = (at: number): Side => (at < 0.5 ? 'left' : 'right')
+const nearestSide = (at: number): Side => (at < 0.5 ? 'left' : 'right');
 
 // Бродит по сцене, а не входит и не уходит. Пока говорит (видно облачко или табличку),
 // стоит на месте лицом к зрителям, а договорив — снова бродит
-let roaming = false
+let roaming = false;
 
 function roam() {
-  roaming = true
-  if (!bubbleVisible.value) wander()
+  roaming = true;
+  if (!bubbleVisible.value) wander();
 }
 
-watch(bubbleVisible, (talking) => {
-  if (!roaming) return
-  if (talking) stop()
-  else wander()
-})
+watch(bubbleVisible, talking => {
+  if (!roaming) return;
+  if (talking) stop();
+  else wander();
+});
 
 // Точка в fromEdge экранных пикселей от края сцены (за полями) — в долях ширины,
 // по которой бродит человечек
 function fromSceneEdge(side: Side, fromEdge: number) {
-  const stage = root.value?.parentElement
-  const scene = stage?.parentElement
-  if (!stage || !scene || !stageWidth()) return side === 'left' ? 0 : 1
-  const inner = stage.getBoundingClientRect()
-  const outer = scene.getBoundingClientRect()
-  const gutter = side === 'left' ? inner.left - outer.left : outer.right - inner.right
-  const at = (fromEdge - gutter) / inner.width
-  return side === 'left' ? at : 1 - at
+  const stage = root.value?.parentElement;
+  const scene = stage?.parentElement;
+  if (!stage || !scene || !stageWidth()) return side === 'left' ? 0 : 1;
+  const inner = stage.getBoundingClientRect();
+  const outer = scene.getBoundingClientRect();
+  const gutter = side === 'left' ? inner.left - outer.left : outer.right - inner.right;
+  const at = (fromEdge - gutter) / inner.width;
+  return side === 'left' ? at : 1 - at;
 }
 
-const halfBody = () => (WALKER.frameWidth * px.value) / 2
+const halfBody = () => (WALKER.frameWidth * px.value) / 2;
 // За краем сцены, целиком скрыт
-const offstage = (side: Side) => fromSceneEdge(side, -halfBody())
+const offstage = (side: Side) => fromSceneEdge(side, -halfBody());
 // Перед дверью: открывающаяся створка его не задевает
-const beforeDoor = (side: Side) =>
-  fromSceneEdge(side, (DOOR_JAMB + DOOR_LEAF + DOOR_GAP) * props.scale + halfBody())
+const beforeDoor = (side: Side) => fromSceneEdge(
+  side,
+  (DOOR_JAMB + DOOR_LEAF + DOOR_GAP) * props.scale + halfBody(),
+);
 
 function holdDoor(side: Side) {
-  letGoDoor()
-  heldDoor = side
-  return doors.open(side)
+  letGoDoor();
+  heldDoor = side;
+  return doors.open(side);
 }
 
 function letGoDoor() {
-  if (heldDoor) doors.release(heldDoor)
-  heldDoor = null
+  if (heldDoor) doors.release(heldDoor);
+  heldDoor = null;
 }
 
 // Промис — когда домахал; прерванный stopWaving так и не завершается
 function wave(): Promise<void> {
-  stopWaving()
-  waving.value = true
-  return new Promise((resolve) => {
+  stopWaving();
+  waving.value = true;
+  return new Promise(resolve => {
     waveTimer = setTimeout(() => {
-      waveTimer = null
-      waving.value = false
-      resolve()
-    }, WAVE_MS)
-  })
+      waveTimer = null;
+      waving.value = false;
+      resolve();
+    }, WAVE_MS);
+  });
 }
 
 function stopWaving() {
-  if (waveTimer) clearTimeout(waveTimer)
-  waveTimer = null
-  waving.value = false
+  if (waveTimer) clearTimeout(waveTimer);
+  waveTimer = null;
+  waving.value = false;
 }
 
 // Выходит из-за края сцены (или, передумав уходить, — из-под створки), машет зрителям
 // и идёт к своему месту
 async function enter(side: Side) {
-  const id = ++scenario
-  roaming = false
-  stopWaving()
-  if (hidden.value) place(offstage(side))
-  await holdDoor(side)
-  if (id !== scenario) return
-  hidden.value = false
-  if (!(await walkTo(beforeDoor(side)))) return
+  const id = ++scenario;
+  roaming = false;
+  stopWaving();
+  if (hidden.value) place(offstage(side));
+  await holdDoor(side);
+  if (id !== scenario) return;
+  hidden.value = false;
+  if (!(await walkTo(beforeDoor(side)))) return;
   // Прошёл дверь — её можно закрывать
-  letGoDoor()
-  const width = stageWidth()
-  const greetAt = width ? (Math.random() * GREET_MAX_DISTANCE) / width : 0
-  if (!(await walkTo(currentX() + (side === 'left' ? greetAt : -greetAt)))) return
-  await wave()
-  if (id !== scenario) return
-  if (await walkTo(props.actor.x)) roam()
+  letGoDoor();
+  const width = stageWidth();
+  const greetAt = width ? (Math.random() * GREET_MAX_DISTANCE) / width : 0;
+  if (!(await walkTo(currentX() + (side === 'left' ? greetAt : -greetAt)))) return;
+  await wave();
+  if (id !== scenario) return;
+  if (await walkTo(props.actor.x)) roam();
 }
 
 async function exit() {
-  const id = ++scenario
-  roaming = false
-  stopWaving()
-  letGoDoor()
+  const id = ++scenario;
+  roaming = false;
+  stopWaving();
+  letGoDoor();
   // Ещё за краем — просто не выходит
   if (!hidden.value) {
-    const side = nearestSide(currentX())
-    if (!(await walkTo(beforeDoor(side), EXIT_SPEED))) return
-    await holdDoor(side)
-    if (id !== scenario) return
-    if (!(await walkTo(offstage(side), EXIT_SPEED))) return
-    hidden.value = true
-    letGoDoor()
+    const side = nearestSide(currentX());
+    if (!(await walkTo(beforeDoor(side), EXIT_SPEED))) return;
+    await holdDoor(side);
+    if (id !== scenario) return;
+    if (!(await walkTo(offstage(side), EXIT_SPEED))) return;
+    hidden.value = true;
+    letGoDoor();
   }
-  emit('exited')
+  emit('exited');
 }
 
 // Передумал уходить: если уже в дверях или за ней — возвращается через неё,
 // а на сцене просто продолжает бродить
 function stayOnStage() {
-  if (hidden.value || heldDoor) return enter(heldDoor ?? nearestSide(currentX()))
-  scenario++
-  stopWaving()
-  roam()
+  if (hidden.value || heldDoor) return enter(heldDoor ?? nearestSide(currentX()));
+  scenario++;
+  stopWaving();
+  roam();
 }
 
 watch(
   () => props.exiting,
-  (exiting) => (exiting ? exit() : stayOnStage()),
-)
-onMounted(() => enter(nearestSide(props.actor.x)))
+  exiting => (exiting ? exit() : stayOnStage()),
+);
+onMounted(() => enter(nearestSide(props.actor.x)));
 onBeforeUnmount(() => {
-  scenario++
-  stop()
-  stopWaving()
-  letGoDoor()
-})
+  scenario++;
+  stop();
+  stopWaving();
+  letGoDoor();
+});
 
-const bubble = ref<HTMLElement | null>(null)
-const name = ref<HTMLElement | null>(null)
-const bubbleName = ref<HTMLElement | null>(null)
-const nameGhost = ref<HTMLElement | null>(null)
-const board = ref<HTMLElement | null>(null)
-const bubbleFit = useKeepInside(bubble, { limitHeight: true, track: walking })
+const bubble = ref<HTMLElement | null>(null);
+const name = ref<HTMLElement | null>(null);
+const bubbleName = ref<HTMLElement | null>(null);
+const nameGhost = ref<HTMLElement | null>(null);
+const board = ref<HTMLElement | null>(null);
+const bubbleFit = useKeepInside(bubble, { limitHeight: true, track: walking });
 // У края сцены сдвигаем только доску, шест остаётся в руке
-const boardFit = useKeepInside(board, { track: walking })
+const boardFit = useKeepInside(board, { track: walking });
 
-const holdingSign = computed(() => bubbleVisible.value && !!emoteOnly.value)
+const holdingSign = computed(() => bubbleVisible.value && !!emoteOnly.value);
 // Пока видно облачко, ник показываем в нём: при наложении облачков иначе не понять, кто пишет
-const showBubble = computed(() => bubbleVisible.value && !emoteOnly.value)
+const showBubble = computed(() => bubbleVisible.value && !emoteOnly.value);
 // Остановившись, человечек поворачивается лицом к зрителям
-const facingFront = computed(() => waving.value || !walking.value)
+const facingFront = computed(() => waving.value || !walking.value);
 // Строка спрайт-листа: 0/1 — вправо/влево, 2/3 — то же с табличкой, 4/5 — анфас без неё и с ней
 const spriteRow = computed(() => {
-  if (facingFront.value) return holdingSign.value ? 5 : 4
-  return (holdingSign.value ? 2 : 0) + (facing.value === 'left' ? 1 : 0)
-})
+  if (facingFront.value) return holdingSign.value ? 5 : 4;
+  return (holdingSign.value ? 2 : 0) + (facing.value === 'left' ? 1 : 0);
+});
 // Смещение шеста от центра человечка (в пикселях спрайта), зеркалится при повороте влево.
 // Анфас шест в той же руке, что и при взгляде вправо
 const poleOffset = computed(() => {
-  const fromCenter = WALKER.holdHand.x + 0.5 - WALKER.frameWidth / 2
-  return facing.value === 'left' && !facingFront.value ? -fromCenter : fromCenter
-})
+  const fromCenter = WALKER.holdHand.x + 0.5 - WALKER.frameWidth / 2;
+  return facing.value === 'left' && !facingFront.value ? -fromCenter : fromCenter;
+});
 // С табличкой никнейм переезжает к центру доски: она висит на шесте в руке, а не над головой
 // Кадр показываем через viewBox, а не сдвигом листа: при дробном px сдвиг на кадр дробный,
 // и края пикселей в разных кадрах округлялись по-разному — человечек «дышал» по ширине
-const frameBox = (col: number) =>
-  `${col * (WALKER.frameWidth + WALKER.gap)} ${spriteRow.value * (WALKER.frameHeight + WALKER.gap)} ${WALKER.frameWidth} ${WALKER.frameHeight}`
+const frameBox = (col: number) => `${col * (WALKER.frameWidth + WALKER.gap)} ${spriteRow.value * (WALKER.frameHeight + WALKER.gap)} ${WALKER.frameWidth} ${WALKER.frameHeight}`;
 // Кадры анимации: шаг — 1–4, взмах — 1–2; стоит — без анимации, кадр 0
 const animation = computed(() => {
-  if (waving.value) return { frames: [1, 2].map(frameBox).join(';'), dur: WAVE_CYCLE_MS }
-  if (walking.value) return { frames: [1, 2, 3, 4].map(frameBox).join(';'), dur: WALK_CYCLE_MS / pace.value }
-  return null
-})
-const nameOffset = computed(() =>
-  holdingSign.value ? poleOffset.value * px.value + boardFit.shift.value : 0,
-)
-const nameFit = useKeepInside(name, { track: walking, offset: nameOffset })
+  if (waving.value) return { frames: [1, 2].map(frameBox).join(';'), dur: WAVE_CYCLE_MS };
+  if (walking.value) return { frames: [1, 2, 3, 4].map(frameBox).join(';'), dur: WALK_CYCLE_MS / pace.value };
+  return null;
+});
+const nameOffset = computed(() => (
+  holdingSign.value
+    ? poleOffset.value * px.value + boardFit.shift.value
+    : 0
+));
+const nameFit = useKeepInside(name, { track: walking, offset: nameOffset });
 
 // Ник перелетает между местом над головой и облачком. Летит копия (nameGhost) поверх облачка:
 // сам ник в облачке прозрачен, пока облачко проявляется. Цель перемеряется каждый кадр —
 // облачко и подпись могут сдвигаться у края сцены, пока человечек идёт.
-const nameFlying = ref(false)
-let flightFrame = 0
+const nameFlying = ref(false);
+let flightFrame = 0;
 
 // Координаты считаем от середины низа человечка: она не сдвигается, когда ник над головой
 // прячется или появляется и человечек меняет ширину и высоту
 function offsetInRoot(el: HTMLElement) {
-  const rect = el.getBoundingClientRect()
-  const base = root.value!.getBoundingClientRect()
-  return { x: rect.left - (base.left + base.width / 2), y: rect.top - base.bottom }
+  const rect = el.getBoundingClientRect();
+  const base = root.value!.getBoundingClientRect();
+  return { x: rect.left - (base.left + base.width / 2), y: rect.top - base.bottom };
 }
 
-watch(showBubble, async (inBubble) => {
-  const from = inBubble ? name.value : bubbleName.value
-  const leavingBubble = inBubble ? null : bubble.value
-  if (!from || !root.value) return
+watch(showBubble, async inBubble => {
+  const from = inBubble ? name.value : bubbleName.value;
+  const leavingBubble = inBubble ? null : bubble.value;
+  if (!from || !root.value) return;
   // Если ник ещё в полёте — продолжаем с того места, где он сейчас
-  const ghostEl = nameGhost.value
-  const start = nameFlying.value && ghostEl ? offsetInRoot(ghostEl) : offsetInRoot(from)
-  const fromStyle = nameFlying.value && ghostEl ? ghostEl.style : getComputedStyle(from)
-  const fromColor = fromStyle.color
-  const fromWeight = fromStyle.fontWeight
-  const fromShadow = fromStyle.textShadow
-  const rootHeight = root.value.offsetHeight
-  cancelAnimationFrame(flightFrame)
-  nameFlying.value = true
+  const ghostEl = nameGhost.value;
+  const start = nameFlying.value && ghostEl ? offsetInRoot(ghostEl) : offsetInRoot(from);
+  const fromStyle = nameFlying.value && ghostEl ? ghostEl.style : getComputedStyle(from);
+  const fromColor = fromStyle.color;
+  const fromWeight = fromStyle.fontWeight;
+  const fromShadow = fromStyle.textShadow;
+  const rootHeight = root.value.offsetHeight;
+  cancelAnimationFrame(flightFrame);
+  nameFlying.value = true;
 
-  await nextTick()
-  const ghost = nameGhost.value
-  if (!ghost || !root.value) return
+  await nextTick();
+  const ghost = nameGhost.value;
+  if (!ghost || !root.value) return;
   // Ник над головой вернулся в поток и приподнял человечка сверху — уходящее облачко
   // привязано к его верху, поэтому опускаем облачко обратно, чтобы оно не подпрыгнуло
   if (leavingBubble) {
-    leavingBubble.style.bottom = `calc(100% + var(--bubble-gap) - ${root.value.offsetHeight - rootHeight}px)`
+    leavingBubble.style.bottom = `calc(100% + var(--bubble-gap) - ${root.value.offsetHeight - rootHeight}px)`;
   }
 
-  const begin = performance.now()
+  const begin = performance.now();
   const fly = (now: number) => {
-    const to = inBubble ? bubbleName.value : name.value
+    const to = inBubble ? bubbleName.value : name.value;
     if (!to || !root.value) {
-      nameFlying.value = false
-      return
+      nameFlying.value = false;
+      return;
     }
-    const t = Math.min(1, (now - begin) / NAME_FLIGHT_MS)
-    const k = 1 - (1 - t) ** 3 // ease-out
-    const end = offsetInRoot(to)
-    const target = getComputedStyle(to)
-    ghost.style.translate = `${start.x + (end.x - start.x) * k}px ${start.y + (end.y - start.y) * k}px`
-    ghost.style.color = `color-mix(in srgb, ${target.color} ${k * 100}%, ${fromColor})`
+    const t = Math.min(1, (now - begin) / NAME_FLIGHT_MS);
+    // ease-out
+    const k = 1 - (1 - t) ** 3;
+    const end = offsetInRoot(to);
+    const target = getComputedStyle(to);
+    ghost.style.translate = `${start.x + (end.x - start.x) * k}px ${start.y + (end.y - start.y) * k}px`;
+    ghost.style.color = `color-mix(in srgb, ${target.color} ${k * 100}%, ${fromColor})`;
     // Толщина и обводка ника (в облачке её нет) меняются на полпути
-    ghost.style.fontWeight = k < 0.5 ? fromWeight : target.fontWeight
-    ghost.style.textShadow = k < 0.5 ? fromShadow : target.textShadow
-    if (t < 1) flightFrame = requestAnimationFrame(fly)
-    else nameFlying.value = false
-  }
-  fly(begin)
-})
+    ghost.style.fontWeight = k < 0.5 ? fromWeight : target.fontWeight;
+    ghost.style.textShadow = k < 0.5 ? fromShadow : target.textShadow;
+    if (t < 1) flightFrame = requestAnimationFrame(fly);
+    else nameFlying.value = false;
+  };
+  fly(begin);
+});
 
 // Убираемая табличка сжимается по высоте, чтобы никнейм над ней съезжал вниз вместе с ней.
 // Конечная высота равна захлёсту на тело (-marginBottom), тогда место в потоке — ноль.
 function collapseSign(el: Element) {
-  const sign = el as HTMLElement
-  sign.style.height = `${sign.offsetHeight}px`
-  void sign.offsetHeight // фиксируем начальную высоту, иначе переход не запустится
-  sign.style.height = `${WALKER.holdHand.y * px.value}px`
+  const sign = el as HTMLElement;
+  sign.style.height = `${sign.offsetHeight}px`;
+  // фиксируем начальную высоту, иначе переход не запустится
+  void sign.offsetHeight;
+  sign.style.height = `${WALKER.holdHand.y * px.value}px`;
 }
 
 watch(
   () => props.actor.lastMessage.id,
   (_, prevId) => {
-    if (bubbleTimer) clearTimeout(bubbleTimer)
+    if (bubbleTimer) clearTimeout(bubbleTimer);
     // Облачко только для свежих сообщений, а не для восстановленных из истории
-    const age = Math.max(0, Date.now() - props.actor.lastMessage.timestamp)
-    bubbleVisible.value = age < BUBBLE_DURATION
+    const age = Math.max(0, Date.now() - props.actor.lastMessage.timestamp);
+    bubbleVisible.value = age < BUBBLE_DURATION;
     if (bubbleVisible.value) {
-      bubbleTimer = setTimeout(() => (bubbleVisible.value = false), BUBBLE_DURATION - age)
+      bubbleTimer = setTimeout(() => (bubbleVisible.value = false), BUBBLE_DURATION - age);
     }
-    if (prevId) jumpKey.value++
+    if (prevId) jumpKey.value++;
   },
   { immediate: true },
-)
+);
 
 onBeforeUnmount(() => {
-  if (bubbleTimer) clearTimeout(bubbleTimer)
-  cancelAnimationFrame(flightFrame)
-})
+  if (bubbleTimer) clearTimeout(bubbleTimer);
+  cancelAnimationFrame(flightFrame);
+});
 </script>
 
 <template>
@@ -367,14 +376,19 @@ onBeforeUnmount(() => {
         }"
         :style="{
           translate: `${bubbleFit.shift.value}px 0`,
-          maxHeight: bubbleFit.maxHeight.value === null ? undefined : `${bubbleFit.maxHeight.value}px`,
+          maxHeight: bubbleFit.maxHeight.value === null
+            ? undefined
+            : `${bubbleFit.maxHeight.value}px`,
         }"
       >
         <div class="actor__bubble-body">
           <span
             ref="bubbleName"
             class="actor__bubble-name"
-            :style="{ color: roleColor ?? actor.color, visibility: nameFlying ? 'hidden' : undefined }"
+            :style="{
+              color: roleColor ?? actor.color,
+              visibility: nameFlying ? 'hidden' : undefined,
+            }"
           >
             <RoleBadge v-if="actor.role" :role="actor.role" :size="BADGE_SIZE" />{{ actor.name }}
           </span>
@@ -383,7 +397,7 @@ onBeforeUnmount(() => {
         <!-- Хвостик смотрит на человечка, даже когда облачко сдвинуто от края сцены -->
         <div
           class="actor__bubble-tail"
-          :style="{ left: `clamp(var(--tail-inset), calc(50% - ${bubbleFit.shift.value}px), calc(100% - var(--tail-inset)))` }"
+          :style="{ '--bubble-shift': `${bubbleFit.shift.value}px` }"
         />
       </div>
     </Transition>
@@ -398,10 +412,20 @@ onBeforeUnmount(() => {
         visibility: nameFlying ? 'hidden' : undefined,
       }"
     >
-      <RoleBadge v-if="actor.role" :role="actor.role" :size="BADGE_SIZE" class="actor__badge" />{{ actor.name }}
+      <RoleBadge
+        v-if="actor.role"
+        :role="actor.role"
+        :size="BADGE_SIZE"
+        class="actor__badge"
+      />{{ actor.name }}
     </span>
     <span v-show="nameFlying" ref="nameGhost" class="actor__name-ghost">
-      <RoleBadge v-if="actor.role" :role="actor.role" :size="BADGE_SIZE" class="actor__badge" />{{ actor.name }}
+      <RoleBadge
+        v-if="actor.role"
+        :role="actor.role"
+        :size="BADGE_SIZE"
+        class="actor__badge"
+      />{{ actor.name }}
     </span>
     <div :key="jumpKey" class="actor__figure" :class="{ 'actor__figure--jump': jumpKey > 0 }">
       <!-- Табличка стоит в потоке над телом и заходит на него так, что шест упирается в кисть -->
@@ -419,7 +443,8 @@ onBeforeUnmount(() => {
             class="actor__board"
             :class="{
               'actor__board--highlighted': actor.lastMessage.highlighted,
-              'actor__board--first': actor.lastMessage.firstMessage && !actor.lastMessage.highlighted,
+              'actor__board--first':
+                actor.lastMessage.firstMessage && !actor.lastMessage.highlighted,
             }"
             :style="{ translate: `${boardFit.shift.value}px 0` }"
           >
@@ -438,7 +463,8 @@ onBeforeUnmount(() => {
         class="actor__body"
         :style="{ width: `${WALKER.frameWidth * px}px`, height: `${WALKER.frameHeight * px}px` }"
       >
-        <!-- Спрайт-лист: строка — поза и направление, столбец — кадр (0 — стоит, 1–4 — шаг или взмах).
+        <!-- Спрайт-лист: строка — поза и направление,
+             столбец — кадр (0 — стоит, 1–4 — шаг или взмах).
              viewBox вырезает из листа один кадр -->
         <svg
           class="sprite"
@@ -458,7 +484,8 @@ onBeforeUnmount(() => {
           <clipPath v-if="headwearClip" :id="clipId">
             <path :d="headwearClip" />
           </clipPath>
-          <!-- Рубашка — в цвет ника, волосы — в цвет волос; к общим пикселям слоя добавляются пиксели причёски -->
+          <!-- Рубашка — в цвет ника, волосы — в цвет волос;
+               к общим пикселям слоя добавляются пиксели причёски -->
           <g :clip-path="headwearClip ? `url(#${clipId})` : undefined">
             <path
               v-for="(layer, i) in WALKER.layers"
@@ -550,7 +577,9 @@ onBeforeUnmount(() => {
 
 .actor__board--highlighted {
   border-color: var(--highlight);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--highlight) 60%, transparent), 0 4px 12px rgb(0 0 0 / 0.18);
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--highlight) 60%, transparent),
+    0 4px 12px rgb(0 0 0 / 0.18);
 }
 
 .actor__board :deep(img) {
@@ -646,6 +675,7 @@ onBeforeUnmount(() => {
 .actor__bubble-tail {
   position: absolute;
   top: 100%;
+  left: clamp(var(--tail-inset), calc(50% - var(--bubble-shift)), calc(100% - var(--tail-inset)));
   width: var(--tail-size);
   height: var(--tail-size);
   border-right: var(--bubble-border);
@@ -679,7 +709,9 @@ onBeforeUnmount(() => {
 .actor__bubble--highlighted {
   --bubble-border: 2px solid var(--highlight);
   --bubble-bg: color-mix(in srgb, var(--highlight) 22%, var(--bg));
-  --bubble-shadow: 0 0 10px color-mix(in srgb, var(--highlight) 60%, transparent), 0 4px 12px rgb(0 0 0 / 0.12);
+  --bubble-shadow:
+    0 0 10px color-mix(in srgb, var(--highlight) 60%, transparent),
+    0 4px 12px rgb(0 0 0 / 0.12);
 }
 
 .bubble-enter-active,

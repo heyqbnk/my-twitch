@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { useMessageParts } from '../composables/useMessageParts'
-import type { ChatMessage } from '../composables/useTwitchChat'
-import ChatEmote from './ChatEmote.vue'
+import { useMessageParts } from '../composables/useMessageParts';
+import type { ChatMessage } from '../composables/useTwitchChat';
+import ChatEmote from './ChatEmote.vue';
 
-defineProps<{ message: ChatMessage }>()
+defineProps<{ message: ChatMessage }>();
 
-const messageParts = useMessageParts()
+const messageParts = useMessageParts();
 </script>
 
 <template>

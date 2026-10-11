@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { emoteImage, type Emote } from '../twitch/emotes'
+import { emoteImage, type Emote } from '../twitch/emotes';
 
 // size — высота картинки в пикселях; без него эмодзи встраивается в строку текста
-const props = defineProps<{ emote: Emote; overlays: Emote[]; size?: number }>()
+const props = defineProps<{ emote: Emote; overlays: Emote[]; size?: number }>();
 
 function lightSrcset(e: Emote) {
-  const { src, srcset } = emoteImage(e, 'light', !!props.size)
-  return `${src} 1x, ${srcset}`
+  const { src, srcset } = emoteImage(e, 'light', !!props.size);
+  return `${src} 1x, ${srcset}`;
 }
 </script>
 
@@ -18,7 +18,11 @@ function lightSrcset(e: Emote) {
     :title="[emote, ...overlays].map((e) => e.name).join(' ')"
   >
     <picture v-for="(e, i) in [emote, ...overlays]" :key="i">
-      <source v-if="e.provider === 'twitch'" media="(prefers-color-scheme: light)" :srcset="lightSrcset(e)" />
+      <source
+        v-if="e.provider === 'twitch'"
+        media="(prefers-color-scheme: light)"
+        :srcset="lightSrcset(e)"
+      />
       <img v-bind="emoteImage(e, 'dark', !!size)" :alt="e.name" />
     </picture>
   </span>
