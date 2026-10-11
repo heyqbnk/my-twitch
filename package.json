@@ -1,0 +1,13 @@
+{
+  "name": "my-twitch",
+  "private": true,
+  "packageManager": "pnpm@12.6.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "preview": "turbo run preview"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.7"
+  }
+}
