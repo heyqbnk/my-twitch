@@ -1,21 +1,33 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
-import { useActivityGrowth } from '../composables/useActivityGrowth';
+import { DEFAULT_SCALE } from '../composables/useChannelQuery';
 import { useKeepInside } from '../composables/useKeepInside';
 import { useMessageParts } from '../composables/useMessageParts';
 import type { SceneActor } from '../composables/useSceneActors';
 import { DOOR_JAMB, DOOR_LEAF, useSceneDoors, type Side } from '../composables/useSceneDoors';
+import { useShrinkWrap } from '../composables/useShrinkWrap';
+import { useTalkGrowth } from '../composables/useTalkGrowth';
 import { useWandering, WALK_CYCLE_MS } from '../composables/useWandering';
+import { shownAt } from '../composables/useTwitchChat';
+import { HIGHLIGHTED_PRIORITY, TALKING_PRIORITY } from '../scene/actorPriority';
 import { WALKER } from '../scene/walkerSprite';
-import { ROLE_COLORS, roleRank } from '../twitch/badges';
-import { soloEmote } from '../twitch/emotes';
+import { ROLE_COLORS } from '../twitch/badges';
+import { emotesOnly } from '../twitch/emotes';
 import ChatEmote from './ChatEmote.vue';
 import MessageText from './MessageText.vue';
 import RoleBadge from './RoleBadge.vue';
 
 const BUBBLE_DURATION = 6000;
-const SOLO_EMOTE_SIZE = 37;
+// Напечатав сообщение, облачко плавно прокручивает его до конца, а последние SCROLL_HOLD_MS
+// перед исчезновением стоит на месте, чтобы конец успели дочитать
+const SCROLL_HOLD_MS = 1000;
+const SOLO_EMOTE_SIZE = 30;
 const NAME_FLIGHT_MS = 300;
+// Кивок на каждые NOD_CHARS символов сообщения (эмодзи — по длине названия), от 1 до MAX_NODS
+const NOD_CHARS = 15;
+const MAX_NODS = 10;
+// Сообщение длиннее стольких символов показываем в широком облачке
+const WIDE_BUBBLE_CHARS = 120;
 // Значок роли перед ником: над головой и в облачке ник 11px
 const BADGE_SIZE = 13;
 
@@ -24,9 +36,19 @@ const props = defineProps<{ actor: SceneActor; scale: number; exiting: boolean }
 // Вышел за дверь — можно убирать
 const emit = defineEmits<{ exited: [] }>();
 
-// Активные зрители крупнее: px — итоговый масштаб с учётом роста
-const growth = useActivityGrowth(() => props.actor.lastMessage);
-const px = computed(() => props.scale * growth.value);
+// Тексты, значки и облачко растут вместе со scale (но не с ростом говорящего):
+// ui — сколько экранных пикселей занимает пиксель интерфейса, при scale по умолчанию 1
+const ui = computed(() => props.scale / DEFAULT_SCALE);
+
+// Слои спрайта: у робота свои, у человечка — общие пиксели слоя плюс пиксели его причёски
+const spriteLayers = computed<readonly { fill: string; d: string }[]>(() => (
+  props.actor.bot
+    ? WALKER.robot
+    : WALKER.layers.map(layer => ({
+      fill: layer.fill,
+      d: layer.d + layer.hairstyles[props.actor.hairstyle],
+    }))
+));
 
 function paint(fill: string): string {
   if (fill === 'shirt') return props.actor.color;
@@ -36,6 +58,10 @@ function paint(fill: string): string {
 
 // Головной убор прячет волосы над собой: человечек обрезается по его clip
 const clipId = useId();
+// Пока говорит, спрайт рисуется дважды — тело и голова отдельно, чтобы голова кивала
+const spriteId = useId();
+const headClipId = useId();
+const bodyClipId = useId();
 const headwearClip = computed(
   () => props.actor.accessories
     .map(a => WALKER.accessories[a.name].clip)
@@ -49,15 +75,29 @@ const POLE_HEIGHT = WALKER.holdHand.y + 3;
 const roleColor = computed(() => (props.actor.role ? ROLE_COLORS[props.actor.role] : null));
 
 const messageParts = useMessageParts();
-// Сообщение из одного эмодзи человечек показывает на табличке вместо облачка
-const emoteOnly = computed(() => soloEmote(messageParts(props.actor.lastMessage)));
+// Сообщение из одних эмодзи человечек показывает на табличке вместо облачка
+const emoteOnly = computed(() => emotesOnly(messageParts(props.actor.lastMessage)));
+const messageLength = computed(() => messageParts(props.actor.lastMessage)
+  .reduce((sum, part) => sum + [...(part.type === 'text' ? part.text : part.emote.name)].length, 0));
+const nods = computed(() => {
+  const count = Math.ceil(messageLength.value / NOD_CHARS);
+  return Math.min(MAX_NODS, Math.max(1, count));
+});
+// Длинному сообщению облачко пошире, чтобы не вытягивалось в высокий столбик
+const wideBubble = computed(() => messageLength.value > WIDE_BUBBLE_CHARS);
 
 const bubbleVisible = ref(false);
-// Слой человечка: старшие роли поверх младших и зрителей без роли, даже молчащие.
-// Внутри одного старшинства говорящий поверх молчащих. Двери всё равно выше всех
-const zIndex = computed(() => roleRank(props.actor.role) * 2 + (bubbleVisible.value ? 1 : 0));
-// Смена ключа перемонтирует тело и перезапускает анимацию прыжка
-const jumpKey = ref(0);
+// Слой человечка: старшие поверх младших (см. actorPriority), а говорящий — поверх всех молчащих,
+// пока не договорит, а с выделенным сообщением — поверх всех остальных говорящих.
+// Двери всё равно выше всех
+const zIndex = computed(() => {
+  if (!bubbleVisible.value) return props.actor.priority;
+  const bonus = props.actor.lastMessage.highlighted ? HIGHLIGHTED_PRIORITY : TALKING_PRIORITY;
+  return props.actor.priority + bonus;
+});
+// Говорящий крупнее: px — итоговый масштаб с учётом роста
+const growth = useTalkGrowth(bubbleVisible);
+const px = computed(() => props.scale * growth.value);
 let bubbleTimer: ReturnType<typeof setTimeout> | null = null;
 
 const root = ref<HTMLElement | null>(null);
@@ -92,20 +132,77 @@ let waveTimer: ReturnType<typeof setTimeout> | null = null;
 
 const nearestSide = (at: number): Side => (at < 0.5 ? 'left' : 'right');
 
+// Сообщение кому-то (ответ или упоминание) автор пишет в телефоне — стоит боком, а не лицом
+// к зрителям. Адресат, бродя по сцене, останавливается и смотрит в телефон, пока висело бы облачко
+// сообщения, — BUBBLE_DURATION (экран мерцает: кадр за PHONE_FRAME_MS). Тегнутый посреди своей речи
+// сначала договаривает, а потом смотрит в телефон короче — LATE_READ_MS
+const PHONE_FRAME_MS = 600;
+const LATE_READ_MS = 3000;
+const texting = computed(
+  () => bubbleVisible.value && !!props.actor.lastMessage.addressees && !emoteOnly.value,
+);
+const reading = ref(false);
+// Пришло сообщение, а посмотреть в телефон пока некогда (говорит, входит или передумал уходить):
+// сколько мс будет смотреть, когда освободится
+let readPending: number | null = null;
+let readTimer: ReturnType<typeof setTimeout> | null = null;
+
 // Бродит по сцене, а не входит и не уходит. Пока говорит (видно облачко или табличку),
 // стоит на месте лицом к зрителям, а договорив — снова бродит
 let roaming = false;
 
 function roam() {
   roaming = true;
-  if (!bubbleVisible.value) wander();
+  resume();
+}
+
+// Свободен — смотрит в пришедшее сообщение, если оно есть, иначе бродит
+function resume() {
+  if (!roaming || bubbleVisible.value) return;
+  if (readPending !== null) readPhone(readPending);
+  else wander();
+}
+
+function readPhone(duration: number) {
+  stopReading();
+  readPending = null;
+  stop();
+  reading.value = true;
+  readTimer = setTimeout(() => {
+    readTimer = null;
+    reading.value = false;
+    resume();
+  }, duration);
+}
+
+function stopReading() {
+  if (readTimer) clearTimeout(readTimer);
+  readTimer = null;
+  reading.value = false;
 }
 
 watch(bubbleVisible, talking => {
   if (!roaming) return;
-  if (talking) stop();
-  else wander();
+  if (talking) {
+    // Заговорил, не дочитав, — уже не дочитает
+    stopReading();
+    stop();
+  } else resume();
 });
+
+// Старые сообщения из истории в телефон не смотрят. Новое, пришедшее посреди чтения, читает заново
+watch(
+  () => props.actor.lastPing?.id,
+  () => {
+    const ping = props.actor.lastPing;
+    if (!ping || Date.now() - shownAt(ping) >= BUBBLE_DURATION) return;
+    // Из нескольких ждущих сообщений смотрит столько, сколько нужно самому долгому
+    const duration = bubbleVisible.value ? LATE_READ_MS : BUBBLE_DURATION;
+    readPending = Math.max(readPending ?? 0, duration);
+    resume();
+  },
+  { immediate: true },
+);
 
 // Точка в fromEdge экранных пикселей от края сцены (за полями) — в долях ширины,
 // по которой бродит человечек
@@ -165,6 +262,7 @@ async function enter(side: Side) {
   const id = ++scenario;
   roaming = false;
   stopWaving();
+  stopReading();
   if (hidden.value) place(offstage(side));
   await holdDoor(side);
   if (id !== scenario) return;
@@ -184,6 +282,8 @@ async function exit() {
   const id = ++scenario;
   roaming = false;
   stopWaving();
+  stopReading();
+  readPending = null;
   letGoDoor();
   // Ещё за краем — просто не выходит
   if (!hidden.value) {
@@ -216,6 +316,7 @@ onBeforeUnmount(() => {
   scenario++;
   stop();
   stopWaving();
+  stopReading();
   letGoDoor();
 });
 
@@ -225,16 +326,102 @@ const bubbleName = ref<HTMLElement | null>(null);
 const nameGhost = ref<HTMLElement | null>(null);
 const board = ref<HTMLElement | null>(null);
 const bubbleFit = useKeepInside(bubble, { limitHeight: true, track: walking });
-// У края сцены сдвигаем только доску, шест остаётся в руке
-const boardFit = useKeepInside(board, { track: walking });
+
+// Облачко плавно растёт по высоте, пока печатается сообщение: высоту auto анимировать нельзя,
+// поэтому задаём телу облачка явную высоту его содержимого. Первый замер — без перехода
+const bubbleScroll = ref<HTMLElement | null>(null);
+const bubbleContent = ref<HTMLElement | null>(null);
+const bubbleContentHeight = ref<number | null>(null);
+const bubbleContentObserver = new ResizeObserver(([entry]) => {
+  if (entry) bubbleContentHeight.value = entry.borderBoxSize[0]!.blockSize;
+});
+watch(bubbleContent, (el, _, onCleanup) => {
+  if (!el) return;
+  bubbleContentObserver.observe(el);
+  onCleanup(() => {
+    bubbleContentObserver.unobserve(el);
+    bubbleContentHeight.value = null;
+  });
+});
+// Многострочное сообщение не оставляет пустого места справа: облачко ужимается до самой длинной строки.
+// Строки берём у ника и невидимой копии всего сообщения: недопечатанное слово ещё стоит в строке,
+// из которой потом перенесётся, и по нему облачко раздувалось бы на время печати.
+// Новое сообщение могло сохранить размер облачка, поэтому подгоняем и при смене сообщения
+const fitBubbleWidth = useShrinkWrap(bubbleContent, '.actor__bubble-name, .message-text__ghost');
+watch(() => props.actor.lastMessage, fitBubbleWidth, { flush: 'post' });
+// У края сцены сдвигаем только доску, шест остаётся в руке. Высоту, как и облачку, ограничивает верх сцены
+const boardFit = useKeepInside(board, { limitHeight: true, track: walking });
+const signScroll = ref<HTMLElement | null>(null);
 
 const holdingSign = computed(() => bubbleVisible.value && !!emoteOnly.value);
 // Пока видно облачко, ник показываем в нём: при наложении облачков иначе не понять, кто пишет
 const showBubble = computed(() => bubbleVisible.value && !emoteOnly.value);
-// Остановившись, человечек поворачивается лицом к зрителям
-const facingFront = computed(() => waving.value || !walking.value);
-// Строка спрайт-листа: 0/1 — вправо/влево, 2/3 — то же с табличкой, 4/5 — анфас без неё и с ней
+// Прокручивается то, в чём сейчас показано сообщение: облачко или табличка
+const messageScroll = computed(() => (showBubble.value ? bubbleScroll.value : signScroll.value));
+
+// Не влезшее в облачко (ник остаётся на месте) или на табличку прокручивается до конца за время,
+// оставшееся после печати (табличка не печатается — сразу после появления).
+// Конец пересчитываем каждый кадр: высота облачка ещё может расти, догружаются картинки эмодзи
+let scrollFrame = 0;
+
+function scrollMessage() {
+  cancelAnimationFrame(scrollFrame);
+  const body = messageScroll.value;
+  if (!body) return;
+  const age = Date.now() - shownAt(props.actor.lastMessage);
+  const scrollMs = BUBBLE_DURATION - SCROLL_HOLD_MS - age;
+  const begin = performance.now();
+  const step = (now: number) => {
+    const t = scrollMs > 0 ? Math.min(1, (now - begin) / scrollMs) : 1;
+    // ease-in-out
+    const k = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+    body.scrollTop = (body.scrollHeight - body.clientHeight) * k;
+    updateFades();
+    if (t < 1) scrollFrame = requestAnimationFrame(step);
+  };
+  step(begin);
+}
+
+function resetMessageScroll() {
+  cancelAnimationFrame(scrollFrame);
+  if (messageScroll.value) messageScroll.value.scrollTop = 0;
+  updateFades();
+}
+
+// Края, за которыми есть скрытый текст, растворяются: сверху он уходит, снизу появляется
+const fadeTop = ref(false);
+const fadeBottom = ref(false);
+
+function updateFades() {
+  const el = messageScroll.value;
+  if (!el) return;
+  fadeTop.value = el.scrollTop > 1;
+  fadeBottom.value = el.scrollTop < el.scrollHeight - el.clientHeight - 1;
+}
+
+// Высота блока прокрутки упирается в предел, а содержимое внутри продолжает расти
+// (печатается текст, догружаются картинки) — следим за самим содержимым
+const messageContentObserver = new ResizeObserver(updateFades);
+watch(messageScroll, (el, _, onCleanup) => {
+  const content = el?.firstElementChild;
+  if (!content) return;
+  messageContentObserver.observe(content);
+  // Табличку нечего ждать — прокручиваем, как только появилась
+  if (el === signScroll.value) scrollMessage();
+  onCleanup(() => {
+    messageContentObserver.unobserve(content);
+    fadeTop.value = false;
+    fadeBottom.value = false;
+  });
+});
+// Смотрит в телефон стоя, а не на ходу и не маша зрителям
+const onPhone = computed(() => (reading.value || texting.value) && !walking.value && !waving.value);
+// Остановившись, человечек поворачивается лицом к зрителям — если не уткнулся в телефон
+const facingFront = computed(() => waving.value || (!walking.value && !onPhone.value));
+// Строка спрайт-листа: 0/1 — вправо/влево, 2/3 — то же с табличкой, 4/5 — анфас без неё и с ней,
+// 6/7 — с телефоном вправо/влево
 const spriteRow = computed(() => {
+  if (onPhone.value) return facing.value === 'left' ? 7 : 6;
   if (facingFront.value) return holdingSign.value ? 5 : 4;
   return (holdingSign.value ? 2 : 0) + (facing.value === 'left' ? 1 : 0);
 });
@@ -248,12 +435,15 @@ const poleOffset = computed(() => {
 // Кадр показываем через viewBox, а не сдвигом листа: при дробном px сдвиг на кадр дробный,
 // и края пикселей в разных кадрах округлялись по-разному — человечек «дышал» по ширине
 const frameBox = (col: number) => `${col * (WALKER.frameWidth + WALKER.gap)} ${spriteRow.value * (WALKER.frameHeight + WALKER.gap)} ${WALKER.frameWidth} ${WALKER.frameHeight}`;
-// Кадры анимации: шаг — 1–4, взмах — 1–2; стоит — без анимации, кадр 0
+// Кадры анимации: шаг — 1–4, взмах и экран телефона — 1–2; стоит — без анимации, кадр 0
 const animation = computed(() => {
   if (waving.value) return { frames: [1, 2].map(frameBox).join(';'), dur: WAVE_CYCLE_MS };
+  if (onPhone.value) return { frames: [1, 2].map(frameBox).join(';'), dur: 2 * PHONE_FRAME_MS };
   if (walking.value) return { frames: [1, 2, 3, 4].map(frameBox).join(';'), dur: WALK_CYCLE_MS / pace.value };
   return null;
 });
+// Кивает, начиная говорить, если стоит: на ходу и при взмахе (рука заходит на голову) — нет
+const nodding = computed(() => bubbleVisible.value && !walking.value && !waving.value);
 const nameOffset = computed(() => (
   holdingSign.value
     ? poleOffset.value * px.value + boardFit.shift.value
@@ -334,15 +524,18 @@ function collapseSign(el: Element) {
 
 watch(
   () => props.actor.lastMessage.id,
-  (_, prevId) => {
+  () => {
     if (bubbleTimer) clearTimeout(bubbleTimer);
+    // Новое сообщение печатается в том же облачке — снова с начала
+    resetMessageScroll();
     // Облачко только для свежих сообщений, а не для восстановленных из истории
-    const age = Math.max(0, Date.now() - props.actor.lastMessage.timestamp);
+    const age = Math.max(0, Date.now() - shownAt(props.actor.lastMessage));
     bubbleVisible.value = age < BUBBLE_DURATION;
     if (bubbleVisible.value) {
       bubbleTimer = setTimeout(() => (bubbleVisible.value = false), BUBBLE_DURATION - age);
+      // На той же табличке новые эмодзи сразу прокручиваются заново; новую табличку прокрутит watch(messageScroll)
+      if (emoteOnly.value && signScroll.value) nextTick(scrollMessage);
     }
-    if (prevId) jumpKey.value++;
   },
   { immediate: true },
 );
@@ -350,16 +543,20 @@ watch(
 onBeforeUnmount(() => {
   if (bubbleTimer) clearTimeout(bubbleTimer);
   cancelAnimationFrame(flightFrame);
+  cancelAnimationFrame(scrollFrame);
+  bubbleContentObserver.disconnect();
+  messageContentObserver.disconnect();
 });
 </script>
 
 <template>
   <div
     ref="root"
-    class="actor"
-    :class="{ 'actor--hidden': hidden }"
+    class="actor outline-scope"
+    :class="{ 'actor--hidden': hidden, 'actor--bot': actor.bot }"
     :style="{
       '--px': `${px}px`,
+      '--ui': `${ui}px`,
       zIndex,
       left: `${x * 100}%`,
       transition: walking ? `left ${duration}ms linear` : undefined,
@@ -373,6 +570,8 @@ onBeforeUnmount(() => {
         :class="{
           'actor__bubble--highlighted': actor.lastMessage.highlighted,
           'actor__bubble--first': actor.lastMessage.firstMessage && !actor.lastMessage.highlighted,
+          'actor__bubble--bot': actor.bot,
+          'actor__bubble--wide': wideBubble,
         }"
         :style="{
           translate: `${bubbleFit.shift.value}px 0`,
@@ -381,18 +580,46 @@ onBeforeUnmount(() => {
             : `${bubbleFit.maxHeight.value}px`,
         }"
       >
-        <div class="actor__bubble-body">
-          <span
-            ref="bubbleName"
-            class="actor__bubble-name"
-            :style="{
-              color: roleColor ?? actor.color,
-              visibility: nameFlying ? 'hidden' : undefined,
-            }"
-          >
-            <RoleBadge v-if="actor.role" :role="actor.role" :size="BADGE_SIZE" />{{ actor.name }}
-          </span>
-          <MessageText :message="actor.lastMessage" />
+        <div
+          class="actor__bubble-body"
+          :style="{
+            height: bubbleContentHeight === null ? undefined : `${bubbleContentHeight}px`,
+          }"
+        >
+          <div ref="bubbleContent">
+            <span
+              ref="bubbleName"
+              class="actor__bubble-name"
+              :style="{
+                color: roleColor ?? actor.color,
+                visibility: nameFlying ? 'hidden' : undefined,
+              }"
+            >
+              <RoleBadge
+                v-if="actor.role"
+                :role="actor.role"
+                :size="BADGE_SIZE * ui"
+              />{{ actor.name }}
+            </span>
+            <!-- Курсор терминала бота бежит за печатающимся текстом -->
+            <div
+              ref="bubbleScroll"
+              class="actor__bubble-scroll"
+              :class="{
+                'actor__scroll--fade-top': fadeTop,
+                'actor__scroll--fade-bottom': fadeBottom,
+              }"
+            >
+              <MessageText
+                class="actor__bubble-text"
+                :message="actor.lastMessage"
+                stream
+                @streamed="scrollMessage"
+              >
+                <span v-if="actor.bot" class="actor__cursor" />
+              </MessageText>
+            </div>
+          </div>
         </div>
         <!-- Хвостик смотрит на человечка, даже когда облачко сдвинуто от края сцены -->
         <div
@@ -415,7 +642,7 @@ onBeforeUnmount(() => {
       <RoleBadge
         v-if="actor.role"
         :role="actor.role"
-        :size="BADGE_SIZE"
+        :size="BADGE_SIZE * ui"
         class="actor__badge"
       />{{ actor.name }}
     </span>
@@ -423,11 +650,11 @@ onBeforeUnmount(() => {
       <RoleBadge
         v-if="actor.role"
         :role="actor.role"
-        :size="BADGE_SIZE"
+        :size="BADGE_SIZE * ui"
         class="actor__badge"
       />{{ actor.name }}
     </span>
-    <div :key="jumpKey" class="actor__figure" :class="{ 'actor__figure--jump': jumpKey > 0 }">
+    <div class="actor__figure">
       <!-- Табличка стоит в потоке над телом и заходит на него так, что шест упирается в кисть -->
       <Transition name="sign" @leave="collapseSign">
         <div
@@ -446,15 +673,31 @@ onBeforeUnmount(() => {
               'actor__board--first':
                 actor.lastMessage.firstMessage && !actor.lastMessage.highlighted,
             }"
-            :style="{ translate: `${boardFit.shift.value}px 0` }"
+            :style="{
+              translate: `${boardFit.shift.value}px 0`,
+              maxHeight: boardFit.maxHeight.value === null
+                ? undefined
+                : `${boardFit.maxHeight.value}px`,
+            }"
           >
-            <ChatEmote
-              v-if="emoteOnly.type === 'emote'"
-              :emote="emoteOnly.emote"
-              :overlays="emoteOnly.overlays"
-              :size="SOLO_EMOTE_SIZE"
-            />
-            <span v-else class="actor__emoji">{{ emoteOnly.text }}</span>
+            <div
+              ref="signScroll"
+              class="actor__sign-scroll"
+              :class="{
+                'actor__scroll--fade-top': fadeTop,
+                'actor__scroll--fade-bottom': fadeBottom,
+              }"
+            >
+              <div class="actor__sign-emotes">
+                <ChatEmote
+                  v-for="(part, i) in emoteOnly"
+                  :key="i"
+                  :emote="part.emote"
+                  :overlays="part.overlays"
+                  :size="SOLO_EMOTE_SIZE * ui"
+                />
+              </div>
+            </div>
           </div>
           <div class="actor__pole" :style="{ height: `${POLE_HEIGHT * px}px` }" />
         </div>
@@ -481,28 +724,49 @@ onBeforeUnmount(() => {
             :dur="`${animation.dur}ms`"
             repeatCount="indefinite"
           />
-          <clipPath v-if="headwearClip" :id="clipId">
-            <path :d="headwearClip" />
-          </clipPath>
-          <!-- Рубашка — в цвет ника, волосы — в цвет волос;
-               к общим пикселям слоя добавляются пиксели причёски -->
-          <g :clip-path="headwearClip ? `url(#${clipId})` : undefined">
-            <path
-              v-for="(layer, i) in WALKER.layers"
-              :key="i"
-              :fill="paint(layer.fill)"
-              :d="layer.d + layer.hairstyles[actor.hairstyle]"
-            />
-          </g>
-          <!-- Аксессуары поверх: основной слой — в цвет аксессуара -->
-          <template v-for="accessory in actor.accessories" :key="accessory.name">
-            <path
-              v-for="(layer, i) in WALKER.accessories[accessory.name].layers"
-              :key="i"
-              :fill="layer.fill === 'accessory' ? accessory.color : layer.fill"
-              :d="layer.d"
-            />
+          <defs>
+            <g :id="spriteId">
+              <clipPath v-if="headwearClip" :id="clipId">
+                <path :d="headwearClip" />
+              </clipPath>
+              <!-- Рубашка (корпус робота) — в цвет ника, волосы — в цвет волос -->
+              <g :clip-path="headwearClip ? `url(#${clipId})` : undefined">
+                <path
+                  v-for="(layer, i) in spriteLayers"
+                  :key="i"
+                  :fill="paint(layer.fill)"
+                  :d="layer.d"
+                />
+              </g>
+              <!-- Аксессуары поверх: основной слой — в цвет аксессуара -->
+              <template v-for="accessory in actor.accessories" :key="accessory.name">
+                <path
+                  v-for="(layer, i) in WALKER.accessories[accessory.name].layers"
+                  :key="i"
+                  :fill="layer.fill === 'accessory' ? accessory.color : layer.fill"
+                  :d="layer.d"
+                />
+              </template>
+            </g>
+            <clipPath :id="headClipId">
+              <path :d="WALKER.head" />
+            </clipPath>
+            <clipPath :id="bodyClipId">
+              <path :d="WALKER.body" />
+            </clipPath>
+          </defs>
+          <template v-if="nodding">
+            <use :href="`#${spriteId}`" :clip-path="`url(#${bodyClipId})`" />
+            <!-- Ключ перезапускает кивки на каждое новое сообщение -->
+            <g
+              :key="actor.lastMessage.id"
+              class="sprite__head"
+              :style="{ animationIterationCount: nods }"
+            >
+              <use :href="`#${spriteId}`" :clip-path="`url(#${headClipId})`" />
+            </g>
           </template>
+          <use v-else :href="`#${spriteId}`" />
         </svg>
       </div>
     </div>
@@ -511,6 +775,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .actor {
+  /* Обводка ников растёт со scale, но не тоньше 1px — иначе пропадёт */
+  --outline-width: max(1px, var(--ui));
   position: absolute;
   bottom: 0;
   display: flex;
@@ -537,14 +803,15 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
-.actor__figure--jump {
-  animation: jump 0.4s ease-out;
+.sprite__head {
+  /* Число кивков — animation-iteration-count, по длине сообщения */
+  animation: nod 0.2s steps(1);
 }
 
-/* Высота прыжка в пикселях спрайта, чтобы табличка не делала его выше */
-@keyframes jump {
-  40% {
-    transform: translateY(calc(var(--px) * -7));
+/* Голова опускается на пиксель листа, закрывая шею, и возвращается */
+@keyframes nod {
+  50% {
+    transform: translateY(1px);
   }
 }
 
@@ -564,6 +831,11 @@ onBeforeUnmount(() => {
 
 .actor__board {
   display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* Ширина — как у облачка */
+  max-width: calc(var(--ui) * 220);
+  overflow: hidden;
   padding: calc(var(--px) * 0.75);
   border: var(--px) solid #6b4423;
   border-radius: 10px;
@@ -580,6 +852,22 @@ onBeforeUnmount(() => {
   box-shadow:
     0 0 10px color-mix(in srgb, var(--highlight) 60%, transparent),
     0 4px 12px rgb(0 0 0 / 0.18);
+}
+
+/* Высота — как у текста облачка: 6 его строк, остальное прокручивается */
+.actor__sign-scroll {
+  --fade-size: calc(var(--ui) * 13);
+  min-height: 0;
+  max-height: calc(var(--ui) * 13 * 1.2 * 6);
+}
+
+/* Несколько эмодзи — рядами по центру */
+.actor__sign-emotes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: calc(var(--ui) * 3);
 }
 
 .actor__board :deep(img) {
@@ -609,10 +897,10 @@ onBeforeUnmount(() => {
 }
 
 .actor__name {
-  margin-bottom: 4px;
+  margin-bottom: calc(var(--ui) * 4);
   text-shadow: var(--text-outline);
   transition: translate 0.25s ease-out;
-  font-size: 11px;
+  font-size: calc(var(--ui) * 11);
   line-height: 1;
   white-space: nowrap;
   /* Белый в обеих темах: под ником стрим, читаемость держит тёмная обводка */
@@ -633,7 +921,7 @@ onBeforeUnmount(() => {
   top: 100%;
   left: 50%;
   z-index: 2;
-  font-size: 11px;
+  font-size: calc(var(--ui) * 11);
   line-height: 1;
   white-space: nowrap;
   pointer-events: none;
@@ -641,33 +929,42 @@ onBeforeUnmount(() => {
 
 .actor__bubble {
   /* Цвета и рамка общие у тела облачка и хвостика */
-  --bubble-gap: 10px;
+  --bubble-gap: calc(var(--ui) * 10);
+  --bubble-radius: calc(var(--ui) * 10);
   --bubble-border: 1px solid var(--border);
   --bubble-bg: var(--bg);
-  --tail-size: 10px;
+  --tail-size: calc(var(--ui) * 10);
   /* Хвостик не заезжает на скруглённые углы */
-  --tail-inset: 16px;
+  --tail-inset: calc(var(--ui) * 16);
   position: absolute;
   bottom: calc(100% + var(--bubble-gap));
   display: flex;
   flex-direction: column;
   width: max-content;
-  max-width: 220px;
+  max-width: calc(var(--ui) * 220);
+}
+
+/* Строка braille-арта из чата (22 символа ⣿) помещается целиком,
+   с запасом на шрифты с широкими braille-глифами */
+.actor__bubble--wide {
+  max-width: calc(var(--ui) * 320);
 }
 
 .actor__bubble-body {
   min-height: 0;
-  padding: 6px 10px;
+  padding: calc(var(--ui) * 6) calc(var(--ui) * 10);
   border: var(--bubble-border);
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.4;
+  border-radius: var(--bubble-radius);
+  font-size: calc(var(--ui) * 13);
+  /* Эмодзи в тексте сообщения */
+  --emote-size: calc(var(--ui) * 28);
+  line-height: 1.2;
   overflow-wrap: anywhere;
-  /* Не влезло по высоте — показываем начало сообщения */
   overflow: hidden;
   color: var(--text-h);
   background: var(--bubble-bg);
   box-shadow: var(--bubble-shadow, 0 4px 12px rgb(0 0 0 / 0.12));
+  transition: height 0.2s ease-out;
 }
 
 /* Повёрнутый квадрат с рамкой снизу и справа: торчит из-под облачка уголком вниз
@@ -685,20 +982,68 @@ onBeforeUnmount(() => {
   rotate: 45deg;
 }
 
+/* Не больше 6 строк сообщения, остальное прокручивается после печати */
+/* Растворение краёв анимируется через зарегистрированные свойства: градиент маски сам по себе
+   переходом не анимируется */
+@property --fade-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+.actor__bubble-scroll {
+  --fade-size: 1em;
+  /* Эмодзи в строке торчат из неё на седьмую часть высоты (см. ChatEmote): место под них,
+     иначе их края обрезаются, а торчащий низ считается переполнением и запускает прокрутку.
+     Отрицательный margin возвращает облачку прежний размер */
+  --emote-overhang: calc(var(--emote-size) / 7);
+  max-height: calc(6 * 1.2em);
+  padding: var(--emote-overhang) 0;
+  margin: calc(-1 * var(--emote-overhang)) 0;
+}
+
+.actor__bubble-scroll,
+.actor__sign-scroll {
+  overflow: hidden;
+  mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.15),
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    rgb(0 0 0 / 0.15)
+  );
+  transition:
+    --fade-top 0.3s ease-out,
+    --fade-bottom 0.3s ease-out;
+}
+
+.actor__scroll--fade-top {
+  --fade-top: var(--fade-size);
+}
+
+.actor__scroll--fade-bottom {
+  --fade-bottom: var(--fade-size);
+}
+
+/* Блочный, чтобы ResizeObserver видел рост напечатанного текста */
+.actor__bubble-text {
+  display: block;
+}
+
 .actor__bubble-name {
   display: block;
-  font-size: 11px;
+  font-size: calc(var(--ui) * 11);
   font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.actor__emoji {
-  padding: 0 2px;
-  font-size: 27px;
-  line-height: 1.2;
 }
 
 .actor__bubble--first {
@@ -714,6 +1059,53 @@ onBeforeUnmount(() => {
     0 4px 12px rgb(0 0 0 / 0.12);
 }
 
+/* Бот пишет в терминал: тёмное окно с почти прямыми углами, зелёный моноширинный текст
+   с лёгким свечением, приглашение «$» и мигающий курсор. Одинаковое в светлой и тёмной теме.
+   Ник бота и над головой моноширинный */
+.actor--bot .actor__name,
+.actor--bot .actor__name-ghost,
+.actor__bubble--bot .actor__bubble-body {
+  font-family: var(--mono);
+}
+
+.actor__bubble--bot {
+  --bubble-radius: calc(var(--ui) * 3);
+  --bubble-border: 1px solid #2c4a36;
+  --bubble-bg: #0b120e;
+  --bubble-shadow:
+    0 0 calc(var(--ui) * 8) rgb(74 222 128 / 0.2),
+    0 4px 12px rgb(0 0 0 / 0.3);
+}
+
+.actor__bubble--bot .actor__bubble-body {
+  font-size: calc(var(--ui) * 12);
+  color: #4ade80;
+  text-shadow: 0 0 calc(var(--ui) * 3) rgb(74 222 128 / 0.5);
+}
+
+/* Префикс и в невидимой копии сообщения, по которой облачко берёт ширину */
+.actor__bubble--bot .actor__bubble-text::before,
+.actor__bubble--bot .actor__bubble-text :deep(.message-text__ghost)::before {
+  content: '$ ';
+  color: rgb(74 222 128 / 0.55);
+}
+
+.actor__cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  margin-left: 0.2em;
+  vertical-align: text-bottom;
+  background: currentColor;
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 .bubble-enter-active,
 .bubble-leave-active {
   transition:
@@ -724,6 +1116,6 @@ onBeforeUnmount(() => {
 .bubble-enter-from,
 .bubble-leave-to {
   opacity: 0;
-  transform: translateY(4px);
+  transform: translateY(calc(var(--ui) * 4));
 }
 </style>

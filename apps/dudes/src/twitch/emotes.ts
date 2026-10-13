@@ -6,9 +6,9 @@ export interface Emote {
   zeroWidth?: boolean;
 }
 
-export type MessagePart =
-  | { type: 'text'; text: string }
-  | { type: 'emote'; emote: Emote; overlays: Emote[] };
+export type EmotePart = { type: 'emote'; emote: Emote; overlays: Emote[] };
+
+export type MessagePart = { type: 'text'; text: string } | EmotePart;
 
 export type EmoteMap = ReadonlyMap<string, Emote>;
 
@@ -95,16 +95,15 @@ export function expandEmotes(parts: MessagePart[], emotes: EmoteMap): MessagePar
   return out;
 }
 
-const SINGLE_EMOJI = /^\p{Extended_Pictographic}(\p{Emoji_Modifier}|\uFE0F|\u200D\p{Extended_Pictographic})*$|^\p{Regional_Indicator}{2}$/u;
-
-// Сообщение из одного эмодзи (с точностью до пробелов) — возвращает эту часть, иначе null
-export function soloEmote(parts: MessagePart[]): MessagePart | null {
-  const meaningful = parts.filter(p => p.type === 'emote' || p.text.trim());
-  if (meaningful.length !== 1) return null;
-  const [part] = meaningful;
-  if (part.type === 'emote') return part;
-  const text = part.text.trim();
-  return SINGLE_EMOJI.test(text) ? { type: 'text', text } : null;
+// Сообщение из одних эмодзи (с точностью до пробелов) — возвращает их, иначе null.
+// Нативные эмодзи Unicode — обычный текст, эмодзи здесь только от Twitch, 7TV и BTTV
+export function emotesOnly(parts: MessagePart[]): EmotePart[] | null {
+  const out: EmotePart[] = [];
+  for (const part of parts) {
+    if (part.type === 'emote') out.push(part);
+    else if (part.text.trim()) return null;
+  }
+  return out.length ? out : null;
 }
 
 // large — для крупного показа: база 2x и 3x для экранов с высокой плотностью

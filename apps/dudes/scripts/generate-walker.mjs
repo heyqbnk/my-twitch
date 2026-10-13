@@ -37,6 +37,11 @@ const PALETTE = {
   p: [41, 52, 78, 255],
   // ботинки
   B: [58, 38, 28, 255],
+  // корпус телефона
+  D: [44, 44, 54, 255],
+  // экран телефона и он же посветлее: мерцает, пока листают ленту
+  G: [120, 200, 255, 255],
+  g: [205, 240, 255, 255],
 };
 const SHIRT = new Set(['T', 't']);
 const HAIR = new Set(['H']);
@@ -148,6 +153,97 @@ const HAIRSTYLES = {
     '....HHHH....',
     '.....SS.....',
   ],
+  // Ирокез: гребень волос по макушке, виски выбриты
+  mohawk: [
+    '............',
+    '....HHHHH...',
+    '...HHHHHH...',
+    '....HHHH....',
+    '...SSSSSS...',
+    '...SSSSSS...',
+    '...SSSSES...',
+    '...SSSSSS...',
+    '....SSSS....',
+    '.....SS.....',
+  ],
+  // Эмо: длинная чёлка закрывает глаз
+  emo: [
+    '............',
+    '............',
+    '............',
+    '....HHHH....',
+    '...HHHHHHH..',
+    '..HHHHHHHH..',
+    '..HHHSSHH...',
+    '..HHSSSSS...',
+    '...HSSSS....',
+    '.....SS.....',
+  ],
+  // Пробор и усы
+  mustache: [
+    '............',
+    '............',
+    '............',
+    '...HHHHH....',
+    '...HHHHHHH..',
+    '...HHHSSS...',
+    '...HSSSES...',
+    '...SSSSHHH..',
+    '....SSSS....',
+    '.....SS.....',
+  ],
+  // Хвостики по бокам головы: сбоку виден ближний
+  pigtails: [
+    '............',
+    '............',
+    '............',
+    '....HHHH....',
+    '...HHHHHH...',
+    '...HHHSSS...',
+    '..HHHSSES...',
+    '.HHHSSSSS...',
+    '.H..SSSS....',
+    '.H...SS.....',
+  ],
+  // Дреды: пряди свисают до плеч
+  dreads: [
+    '............',
+    '............',
+    '............',
+    '....HHHH....',
+    '..HHHHHHH...',
+    '.HHHHHSSS...',
+    '.H.HHSSES...',
+    '.H.HSSSSS...',
+    '.H.HSSSS....',
+    '.H.H.SS.....',
+  ],
+  // Горшок: ровная чёлка до бровей, волосы закрывают уши
+  bowl: [
+    '............',
+    '............',
+    '....HHHH....',
+    '...HHHHHH...',
+    '..HHHHHHHH..',
+    '..HHHHHHHH..',
+    '...SSSSES...',
+    '...SSSSSS...',
+    '....SSSS....',
+    '.....SS.....',
+  ],
+  // Два пучка по бокам макушки: сбоку виден ближний
+  spacebuns: [
+    '............',
+    '...HH.......',
+    '..HHHH......',
+    '...HHHHH....',
+    '...HHHHHH...',
+    '...HHHSSS...',
+    '...HHSSES...',
+    '...HSSSSS...',
+    '....SSSS....',
+    '.....SS.....',
+  ],
 };
 const STYLE_NAMES = Object.keys(HAIRSTYLES);
 // Те же причёски анфас: лицом к зрителю, глаза — E в 6-й строке
@@ -249,6 +345,90 @@ const HAIRSTYLES_FRONT = {
     '....HHHH....',
     '.....SS.....',
   ],
+  mohawk: [
+    '............',
+    '.....HH.....',
+    '.....HH.....',
+    '....SHHS....',
+    '...SSHHSS...',
+    '...SSSSSS...',
+    '...SESSES...',
+    '...SSSSSS...',
+    '....SSSS....',
+    '.....SS.....',
+  ],
+  emo: [
+    '............',
+    '............',
+    '............',
+    '...HHHHHH...',
+    '..HHHHHHHH..',
+    '..HHHHHHSH..',
+    '..HHHHSESH..',
+    '..HHHSSSSH..',
+    '...HHSSSH...',
+    '.....SS.....',
+  ],
+  mustache: [
+    '............',
+    '............',
+    '............',
+    '...HHHHH....',
+    '..HHHHHHHH..',
+    '...HSSSSH...',
+    '...SESSES...',
+    '..HHHHHHHH..',
+    '....SSSS....',
+    '.....SS.....',
+  ],
+  pigtails: [
+    '............',
+    '............',
+    '............',
+    '....HHHH....',
+    '...HHHHHH...',
+    '...HSSSSH...',
+    '.HHSESSESHH.',
+    '.H.SSSSSS.H.',
+    '.H..SSSS..H.',
+    '.....SS.....',
+  ],
+  dreads: [
+    '............',
+    '............',
+    '............',
+    '...HHHHHH...',
+    '..HHHHHHHH..',
+    '.HHHSSSSHHH.',
+    '.HHSESSESHH.',
+    '.H.HSSSSH.H.',
+    '.H.HSSSSH.H.',
+    '.H.H.SS.H.H.',
+  ],
+  bowl: [
+    '............',
+    '............',
+    '....HHHH....',
+    '...HHHHHH...',
+    '..HHHHHHHH..',
+    '..HHHHHHHH..',
+    '...SESSES...',
+    '...SSSSSS...',
+    '....SSSS....',
+    '.....SS.....',
+  ],
+  spacebuns: [
+    '............',
+    '..HH....HH..',
+    '.HHHH..HHHH.',
+    '..HHHHHHHH..',
+    '..HHHHHHHH..',
+    '...HSSSSH...',
+    '...SESSES...',
+    '...SSSSSS...',
+    '....SSSS....',
+    '.....SS.....',
+  ],
 };
 const ARMS = {
   side: [
@@ -312,6 +492,14 @@ const ARMS = {
     '....TTTT....',
     '....PPPP....',
   ],
+  // Согнутая в локте рука держит телефон перед собой (сам телефон — PHONE)
+  phone: [
+    '....TTTT....',
+    '....TTTtt...',
+    '....TTTT....',
+    '....TTTT....',
+    '....PPPP....',
+  ],
 };
 // Кисть, держащая шест, в кадре стоя (смотрит вправо или анфас)
 const HOLD_HAND = { x: 9, y: 12 };
@@ -340,6 +528,21 @@ const WAVE_HAND = {
   ],
 };
 const WAVE_TOP = 2;
+// Телефон в кисти (строки 9–11, ниже шеи — не кивает вместе с головой): экраном к лицу,
+// в двух кадрах светлое пятно на экране смещается, будто листают ленту
+const PHONE = {
+  a: [
+    '.........gD.',
+    '.........GD.',
+    '.........SD.',
+  ],
+  b: [
+    '.........GD.',
+    '.........gD.',
+    '.........SD.',
+  ],
+};
+const PHONE_TOP = 9;
 // Ноги: idle/passing — 6 строк (13–18), contact — 5 строк (14–18), корпус ниже на 1px
 const LEGS = {
   idle: [
@@ -398,9 +601,10 @@ function overlay(rows, grid, top) {
   });
 }
 
-function frame(head, arms, legs, hand) {
+// hand — поднятая рука (или телефон) поверх головы и рук, начиная со строки top
+function frame(head, arms, legs, hand, top = WAVE_TOP) {
   let upper = [...head, ...ARMS[arms]];
-  if (hand) upper = overlay(upper, hand, WAVE_TOP);
+  if (hand) upper = overlay(upper, hand, top);
   const rows = legs.length === 5 ? ['............', ...upper, ...legs] : [...upper, ...legs];
   // строка под контур ботинок
   rows.push('............');
@@ -425,9 +629,9 @@ const mirror = g => g.map(r => [...r].reverse());
 
 // Кадры: idle + 4 кадра шага. Рука — противоходом к ближней ноге.
 // Анфас: стоит, машет (два кадра), остальные столбцы — снова стоит.
-function sheetOf(name) {
-  const head = HAIRSTYLES[name];
-  const face = HAIRSTYLES_FRONT[name];
+// С телефоном: стоит боком, в кадрах 1–2 мерцает экран, остальные — как кадр 0.
+// head и face — голова сбоку (смотрит вправо) и анфас
+function sheetOf(head, face) {
   const frontOf = (still, wave) => [
     frame(face, still, LEGS.front),
     frame(face, wave, LEGS.front, WAVE_HAND.out),
@@ -450,6 +654,8 @@ function sheetOf(name) {
     frame(head, 'hold', LEGS.contactB),
     frame(head, 'hold', LEGS.passB),
   ];
+  const phoneA = frame(head, 'phone', LEGS.idle, PHONE.a, PHONE_TOP);
+  const phoneRight = [phoneA, phoneA, frame(head, 'phone', LEGS.idle, PHONE.b, PHONE_TOP), phoneA, phoneA];
   return [
     right,
     right.map(mirror),
@@ -457,9 +663,61 @@ function sheetOf(name) {
     holdRight.map(mirror),
     frontOf('front', 'frontWave'),
     frontOf('frontHold', 'frontWaveHold'),
+    phoneRight,
+    phoneRight.map(mirror),
   ];
 }
-const SHEETS = STYLE_NAMES.map(sheetOf);
+const SHEETS = STYLE_NAMES.map(name => sheetOf(HAIRSTYLES[name], HAIRSTYLES_FRONT[name]));
+
+// Робот для чат-ботов: тот же человечек и те же кадры, но голова — коробка с антенной и визором,
+// а кисти, шея, ноги и ступни металлические. Корпус (T/t) красится в цвет ника, как рубашка.
+// M/m — металл и он же в тени, b — тёмный металл (стержень антенны, шея, болт),
+// V — стекло визора, c — светящийся глаз, R — огонёк антенны
+const ROBOT_HEAD = [
+  '............',
+  '.....R......',
+  '.....b......',
+  '...MMMMMMM..',
+  '...MMMMMMM..',
+  '...MMMVVVV..',
+  '...MbMVVcV..',
+  '...MMMMMMM..',
+  '...mmmmmmm..',
+  '.....bb.....',
+];
+const ROBOT_FACE = [
+  '............',
+  '.....R......',
+  '.....b......',
+  '..MMMMMMMM..',
+  '..MMMMMMMM..',
+  '..MVVVVVVM..',
+  '..MVcVVcVM..',
+  '..MMMMMMMM..',
+  '..mmmmmmmm..',
+  '.....bb.....',
+];
+const ROBOT_PALETTE = {
+  O: PALETTE.O,
+  M: [184, 192, 204, 255],
+  m: [128, 136, 150, 255],
+  b: [84, 90, 104, 255],
+  V: [24, 32, 48, 255],
+  c: [94, 240, 255, 255],
+  R: [255, 82, 82, 255],
+  // телефон у робота такой же
+  D: PALETTE.D,
+  G: PALETTE.G,
+  g: PALETTE.g,
+  // ноги, дальняя нога и ступни
+  J: [104, 112, 128, 255],
+  j: [76, 82, 96, 255],
+  F: [52, 56, 68, 255],
+};
+// Части человечка, которые у робота из металла: кожа рук, штаны и ботинки
+const ROBOT_PARTS = { S: 'M', s: 'm', P: 'J', p: 'j', B: 'F' };
+const ROBOT_SHEET = sheetOf(ROBOT_HEAD, ROBOT_FACE)
+  .map(row => row.map(grid => grid.map(r => r.map(ch => ROBOT_PARTS[ch] ?? ch))));
 
 // Аксессуары: накладываются поверх готового человечка, сетка как у причёсок (смотрит вправо).
 // A — цвет аксессуара (у каждого зрителя свой), a — он же в тени, h — он же с бликом, остальное фиксировано.
@@ -488,10 +746,79 @@ const ACC_PALETTE = {
   R: [255, 122, 42, 255],
   // дымок
   m: [220, 220, 228, 190],
+  // золото короны и монокля
+  Y: [240, 192, 48, 255],
+  // сияние нимба
+  N: [255, 234, 128, 255],
 };
 const ACC_COLOR = new Set(['A', 'a', 'h']);
-// Порядок — порядок отрисовки: очки поверх шапки, наушники поверх ремешка VR-очков
+// Порядок — порядок отрисовки: шарф под всем, очки поверх шапки, наушники поверх ремешка VR-очков
 const ACCESSORIES = {
+  // Шарф на шее, конец свисает за спину (анфас — на грудь)
+  scarf: {
+    grid: [
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '...OAhAAO...',
+      '...OAAAAO...',
+      '...OaO......',
+      '...OAO......',
+      '....O.......',
+    ],
+    front: [
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '..OAhAAAAO..',
+      '..OAAAAAAO..',
+      '...OAAO.....',
+      '...OaaO.....',
+      '....OO......',
+    ],
+  },
+  // Галстук-бабочка под подбородком, узел в тени
+  bowtie: {
+    grid: [
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '.......AA...',
+      '.......aA...',
+    ],
+    front: [
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '....A..A....',
+      '....AaaA....',
+      '....A..A....',
+    ],
+  },
   // Шапка с помпоном и отворотом
   beanie: {
     cut: 5,
@@ -525,6 +852,46 @@ const ACCESSORIES = {
       '..O......O..',
     ],
   },
+  // Кепка: козырёк вперёд
+  cap: {
+    cut: 5,
+    grid: [
+      '............',
+      '............',
+      '....OOOOO...',
+      '...OAhAAAOO.',
+      '..OAAAAAAaaO',
+      '.........OO.',
+    ],
+    front: [
+      '............',
+      '............',
+      '....OOOO....',
+      '...OAhAAO...',
+      '..OAAAAAAO..',
+      '.OaaaaaaaaO.',
+      '..O......O..',
+    ],
+  },
+  // Нимб: светящееся кольцо парит над головой, ничего не прячет
+  halo: {
+    grid: [
+      '....NNNN....',
+      '...N....N...',
+      '....NNNN....',
+    ],
+    front: null,
+  },
+  // Золотая корона с камнями (камни — цвет аксессуара)
+  crown: {
+    cut: 3,
+    grid: [
+      '...O.OO.O...',
+      '..OYOYYOYO..',
+      '..OYAYYAYO..',
+    ],
+    front: null,
+  },
   // Очки: дужка к уху, глаз за стеклом
   glasses: {
     grid: [
@@ -544,6 +911,32 @@ const ACCESSORIES = {
       '............',
       '...AAAAAA...',
       '...ALAALA...',
+    ],
+  },
+  // Монокль: золотая оправа вокруг глаза и цепочка вниз от неё
+  monocle: {
+    grid: [
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '.......Y....',
+      '......Y.Y...',
+      '.......YY...',
+      '........Y...',
+    ],
+    front: [
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '.......Y....',
+      '......Y.Y...',
+      '.......YY...',
+      '........Y...',
+      '........Y...',
     ],
   },
   // VR-очки: коробка на лице, ремешок вокруг головы
@@ -616,6 +1009,31 @@ const ACCESSORIES = {
       '.......CCR..',
     ],
   },
+  // Леденец на палочке во рту
+  lollipop: {
+    grid: [
+      '............',
+      '............',
+      '............',
+      '..........OO',
+      '.........OhA',
+      '.........OAa',
+      '..........wO',
+      '.........w..',
+    ],
+    front: [
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '............',
+      '.........OO.',
+      '.........hAO',
+      '.......wwAaO',
+      '.........OO.',
+    ],
+  },
 };
 const ACC_NAMES = Object.keys(ACCESSORIES);
 
@@ -632,6 +1050,8 @@ function underHand(rows, hand) {
 // Лист аксессуара в тех же строках и кадрах, что у человечка (без контура)
 function accSheetOf({ grid, front }) {
   const right = SHIFT.map(shift => placed(grid, shift));
+  // С телефоном стоит боком, не шагая
+  const phone = SHIFT.map(() => placed(grid, 0));
   const still = placed(front ?? grid, 0);
   const face = [
     still,
@@ -640,7 +1060,7 @@ function accSheetOf({ grid, front }) {
     still,
     still,
   ];
-  return [right, right.map(mirror), right, right.map(mirror), face, face];
+  return [right, right.map(mirror), right, right.map(mirror), face, face, phone, phone.map(mirror)];
 }
 const ACC_SHEETS = ACC_NAMES.map(name => accSheetOf(ACCESSORIES[name]));
 // Часть кадра, которая остаётся видна под головным убором: всё ниже строки cut
@@ -652,6 +1072,17 @@ function clipOf(cut) {
   }
   return d;
 }
+// Часть кадра выше строки cut — дополнение к clipOf(cut)
+function clipAbove(cut) {
+  let d = '';
+  for (let row = 0; row < SHEETS[0].length; row++) for (let col = 0; col < 5; col++) {
+    const bottom = cut + shiftAt(row, col);
+    d += `M${col * (W + GAP)} ${row * (H + GAP)}h${W}v${bottom}h${-W}z`;
+  }
+  return d;
+}
+// Шея — 10-я строка головы (строка 9 кадра стоя): голова выше неё кивает отдельно от тела
+const NECK = 9;
 
 // --- PNG ---
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
@@ -722,17 +1153,21 @@ function pathOf(has) {
 // Слои SVG: рубашка (fill: 'shirt') и волосы (fill: 'hair') красит компонент, поверх рубашки — тень руки.
 // Пиксели, одинаковые у всех причёсок, лежат в d, остальные — в hairstyles[номер причёски]
 const hex = ([r, g, b]) => '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
-const byColor = new Map();
-for (const [ch, rgba] of Object.entries(PALETTE)) {
-  if (SHIRT.has(ch) || HAIR.has(ch)) continue;
-  const color = hex(rgba);
-  byColor.set(color, new Set([...(byColor.get(color) ?? []), ch]));
+// Фиксированные цвета палитры: символы одного цвета — в одной группе
+function colorGroups(palette) {
+  const byColor = new Map();
+  for (const [ch, rgba] of Object.entries(palette)) {
+    if (SHIRT.has(ch) || HAIR.has(ch)) continue;
+    const color = hex(rgba);
+    byColor.set(color, new Set([...(byColor.get(color) ?? []), ch]));
+  }
+  return [...byColor].map(([fill, chars]) => ({ fill, chars }));
 }
 const groups = [
   { fill: 'shirt', chars: SHIRT },
   { fill: 'rgb(0 0 0 / 0.27)', chars: new Set(['t']) },
   { fill: 'hair', chars: HAIR },
-  ...[...byColor].map(([fill, chars]) => ({ fill, chars })),
+  ...colorGroups(PALETTE),
 ];
 const layers = groups.map(({ fill, chars }) => {
   const common = (x, y) => SHEETS.every(sheet => chars.has(charAt(sheet, x, y)));
@@ -744,6 +1179,15 @@ const layers = groups.map(({ fill, chars }) => {
     ),
   };
 });
+
+// Слои робота: у него один вариант, так что весь слой целиком в d
+const robot = [
+  { fill: 'shirt', chars: SHIRT },
+  { fill: 'rgb(0 0 0 / 0.27)', chars: new Set(['t']) },
+  ...colorGroups(ROBOT_PALETTE),
+]
+  .map(({ fill, chars }) => ({ fill, d: pathOf((x, y) => chars.has(charAt(ROBOT_SHEET, x, y))) }))
+  .filter(layer => layer.d);
 
 // Слои аксессуара: fill: 'accessory' красит компонент, поверх — тень и блик, затем фиксированные цвета
 const accHex = rgba => (rgba[3] === 255 ? hex(rgba) : `rgb(${rgba.slice(0, 3).join(' ')} / ${+(rgba[3] / 255).toFixed(2)})`);
@@ -774,13 +1218,16 @@ write(
   out,
   `// Сгенерировано scripts/generate-walker.mjs — не править вручную.
 // Спрайт-лист человечка (кадры разделены прозрачным зазором gap): строки — поза и направление (0 — вправо, 1 — влево,
-// 2 и 3 — то же с табличкой, 4 — анфас, 5 — анфас с табличкой), столбцы — кадры
-// (0 — стоит, 1–4 — шаг; в строках анфас 1–2 — машет рукой, 3–4 — стоит).
+// 2 и 3 — то же с табличкой, 4 — анфас, 5 — анфас с табличкой, 6 и 7 — смотрит в телефон вправо и влево),
+// столбцы — кадры (0 — стоит, 1–4 — шаг; в строках анфас 1–2 — машет рукой, 3–4 — стоит;
+// в строках с телефоном 1–2 — мерцает экран, 3–4 — как 0).
 // Слои с fill: 'shirt' и 'hair' красятся в цвета зрителя. Пиксели, общие для всех причёсок, —
 // в d, остальные — в hairstyles[номер причёски]. holdHand — кисть с табличкой в кадре стоя
 // вправо и анфас.
 // accessories — аксессуары в порядке отрисовки: слой fill: 'accessory' красится в цвет аксессуара,
 // clip — видимая под головным убором часть листа человечка (null — убор ничего не прячет).
+// robot — слои робота для чат-ботов на тех же кадрах: fill: 'shirt' красится в цвет ника.
+// head и body — части листа выше шеи и начиная с неё: голова кивает отдельно от тела.
 export const WALKER = {
   frameWidth: ${W},
   frameHeight: ${H},
@@ -788,9 +1235,12 @@ export const WALKER = {
   cols: ${cols},
   rows: ${rows},
   holdHand: ${JSON.stringify(HOLD_HAND)},
+  head: '${clipAbove(NECK)}',
+  body: '${clipOf(NECK)}',
   hairstyles: ${JSON.stringify(STYLE_NAMES)},
   layers: ${JSON.stringify(layers, null, 2).replace(/\n/g, '\n  ')},
   accessories: ${JSON.stringify(accessories, null, 2).replace(/\n/g, '\n  ')},
+  robot: ${JSON.stringify(robot, null, 2).replace(/\n/g, '\n  ')},
 } as const
 `,
 );
@@ -817,7 +1267,7 @@ const PREVIEW_ACC = [
 ];
 
 // SVG-превью для ревью в браузере: собрано из тех же слоёв, что уходят в walkerSprite.ts, и рисуется
-// так же, как в SceneActor.vue. Сверху — листы всех причёсок, снизу — каждый аксессуар на своей причёске
+// так же, как в SceneActor.vue. Сверху — листы всех причёсок, снизу — каждый аксессуар на своей причёске и робот
 function svgPreview() {
   const sw = cols * (W + GAP) - GAP;
   const sh = rows * (H + GAP) - GAP;
@@ -825,7 +1275,7 @@ function svgPreview() {
   const label = 8;
   const cellW = sw + pad;
   const cellH = label + sh + pad;
-  const perRow = Math.max(STYLE_NAMES.length, ACC_NAMES.length);
+  const perRow = Math.max(STYLE_NAMES.length, ACC_NAMES.length + 1);
   const width = pad + perRow * cellW;
   const height = pad + 2 * cellH;
   const frames = Array.from({ length: rows * cols }, (_, i) => `<rect x="${(i % cols) * (W + GAP)}" y="${Math.floor(i / cols) * (H + GAP)}" width="${W}" height="${H}"/>`).join('');
@@ -853,6 +1303,11 @@ function svgPreview() {
         .join('');
       return cell(perRow + i, name, man(style, clip && `c${i}`) + acc);
     }),
+    cell(
+      perRow + ACC_NAMES.length,
+      'robot',
+      robot.map(layer => `<path fill="${layer.fill === 'shirt' ? hex(PALETTE.T) : layer.fill}" d="${layer.d}"/>`).join(''),
+    ),
   ];
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width * 4}" height="${height * 4}" shape-rendering="crispEdges">
 <style>text { font: 5px monospace; fill: #555 } .frame { fill: #fff }</style>
@@ -868,7 +1323,28 @@ ${cells.join('\n')}
 
 if (process.argv[3]?.endsWith('.svg')) write(process.argv[3], svgPreview());
 else if (process.argv[3]) {
-  const SETS = [[], ['headphones'], ['beanie'], ['helmet'], ['glasses'], ['vr'], ['cigar'], ['beanie', 'glasses', 'cigar'], ['helmet', 'vr'], ['headphones', 'glasses'], ['vr', 'headphones']];
+  const SETS = [
+    [],
+    ['headphones'],
+    ['beanie'],
+    ['helmet'],
+    ['glasses'],
+    ['vr'],
+    ['cigar'],
+    ['beanie', 'glasses', 'cigar'],
+    ['helmet', 'vr'],
+    ['headphones', 'glasses'],
+    ['vr', 'headphones'],
+    ['cap'],
+    ['crown'],
+    ['monocle'],
+    ['scarf'],
+    ['lollipop'],
+    ['bowtie'],
+    ['halo'],
+    ['cap', 'glasses', 'scarf'],
+    ['crown', 'monocle', 'lollipop'],
+  ];
   const mix = (base, [r, g, b, a]) => base.map(
     (v, k) => Math.round(v + (([r, g, b][k] - v) * a) / 255),
   );

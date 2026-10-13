@@ -36,7 +36,8 @@ function lightSrcset(e: Emote) {
 }
 
 .emote--inline {
-  margin: -4px 0;
+  /* Не раздвигает строку текста: -4px при высоте 28px */
+  margin: calc(var(--emote-size, 28px) / -7) 0;
 }
 
 .emote > picture {

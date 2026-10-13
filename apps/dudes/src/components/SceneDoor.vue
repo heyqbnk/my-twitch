@@ -138,7 +138,7 @@ const leafPaths = computed(() => {
 .door {
   position: absolute;
   bottom: 0;
-  z-index: 10;
+  z-index: 2147483647;
   display: flex;
   align-items: flex-end;
   opacity: 0;

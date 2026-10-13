@@ -1,7 +1,8 @@
 import { computed, onScopeDispose, ref, watch, type Ref } from 'vue';
+import { actorPriority } from '../scene/actorPriority';
 import { actorAccessories, actorColor, actorHair, actorPosition, type Accessory } from '../scene/actorStyle';
 import type { ChatRole } from '../twitch/badges';
-import type { ChatMessage } from './useTwitchChat';
+import { shownAt, type ChatMessage } from './useTwitchChat';
 
 const MAX_TIMEOUT = 2 ** 31 - 1;
 
@@ -10,23 +11,39 @@ export interface SceneActor {
   name: string;
   // Значок роли перед ником — по последнему сообщению: роль могут выдать или снять
   role?: ChatRole;
+  // Старшинство: кто старше, тот поверх остальных (см. actorPriority)
+  priority: number;
   color: string;
+  // Чат-бот: рисуется роботом (WALKER.robot), причёска и цвет волос ему не нужны
+  bot?: boolean;
   // Номер причёски в WALKER.hairstyles
   hairstyle: number;
   hairColor: string;
-  // Аксессуары в порядке отрисовки
+  // Аксессуары в порядке отрисовки, у робота их нет
   accessories: Accessory[];
   x: number;
   lastMessage: ChatMessage;
   // Попрощался (lastMessage — прощание) и уходит со сцены
   leaving?: boolean;
+  // Последнее сообщение, адресованное ему (ответ или упоминание), пока он был на сцене
+  lastPing?: ChatMessage;
 }
+
+// Адресат сообщения — по логину или отображаемому имени
+const isAddressee = (msg: ChatMessage, actor: SceneActor) => !!msg.addressees?.some(
+  name => name === actor.login || name === actor.name.toLowerCase(),
+);
 
 // Человечки на сцене — авторы сообщений из буфера чата, в порядке первого появления.
 // Сообщения автора выпали из буфера, он молчит дольше stay мс или написал !vanish / bb —
 // человечек уходит со сцены (прощается с табличкой «bb», а сама команда не показывается).
 // Ушедший по команде остаётся в списке с leaving, чтобы сцена знала его прощание.
-export function useSceneActors(messages: Ref<ChatMessage[]>, stay: Ref<number | null>) {
+// followDates — даты фоллова канала по логинам, для старшинства фолловеров.
+export function useSceneActors(
+  messages: Ref<ChatMessage[]>,
+  stay: Ref<number | null>,
+  followDates: Ref<ReadonlyMap<string, number | null>>,
+) {
   // Текущее время обновляется к моменту, когда истекает срок ближайшего человечка
   const now = ref(Date.now());
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -45,6 +62,7 @@ export function useSceneActors(messages: Ref<ChatMessage[]>, stay: Ref<number | 
       } else if (actor && !actor.leaving) {
         actor.name = msg.author;
         actor.role = msg.role;
+        actor.priority = actorPriority(msg, followDates.value.get(msg.login));
         // Зритель мог сменить цвет ника — человечек перекрашивается вслед за ним
         actor.color = actorColor(msg);
         actor.lastMessage = msg;
@@ -53,19 +71,26 @@ export function useSceneActors(messages: Ref<ChatMessage[]>, stay: Ref<number | 
           login: msg.login,
           name: msg.author,
           role: msg.role,
+          priority: actorPriority(msg, followDates.value.get(msg.login)),
           color: actorColor(msg),
+          bot: msg.bot,
           ...actorHair(msg),
-          accessories: actorAccessories(msg),
+          accessories: msg.bot ? [] : actorAccessories(msg),
           x: actorPosition(msg.login),
           lastMessage: msg,
         });
+      }
+      if (msg.vanish || !msg.addressees) continue;
+      for (const actor of actors.values()) {
+        if (actor.login === msg.login || actor.leaving) continue;
+        if (isAddressee(msg, actor)) actor.lastPing = msg;
       }
     }
     return [...actors.values()];
   });
 
   // Срок, когда человечек уходит
-  const expiry = (a: SceneActor, limit: number) => a.lastMessage.timestamp + limit;
+  const expiry = (a: SceneActor, limit: number) => shownAt(a.lastMessage) + limit;
 
   const visible = computed(() => {
     const limit = stay.value;
