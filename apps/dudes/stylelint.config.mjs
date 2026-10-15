@@ -51,6 +51,9 @@ export default {
         // CSS modules: a single camelCase class per selector, modifiers win by order.
         'selector-class-pattern': [CAMEL_CASE_CLASS, { resolveNestedSelectors: true }],
         'selector-max-class': 1,
+        // `.root img`, `.root > .child`, `div` hide a second element behind the class.
+        'selector-max-compound-selectors': 1,
+        'selector-max-type': 0,
         // Nesting doesn't count towards the limits above, so only pseudo-classes and pseudo-elements nest.
         'selector-nested-pattern': [/^&(::?[a-z-]+(\(.*\))?)+$/, {
           message: selector => `Expected a single class, nest only pseudo-classes and pseudo-elements: "${selector}"`,

@@ -156,6 +156,8 @@ export default defineConfigWithVueTs(
       'vue/max-attributes-per-line': 'off',
       'vue/singleline-html-element-content-newline': 'off',
       'vue/html-self-closing': ['warn', { html: { void: 'any' } }],
+      // own classes live in CSS modules: <style module="cn">
+      'vue/enforce-style-attribute': ['error', { allow: ['module'] }],
     },
   },
 
