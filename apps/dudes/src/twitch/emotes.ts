@@ -1,3 +1,5 @@
+import { splitLinks } from './links';
+
 export interface Emote {
   provider: 'twitch' | '7tv' | 'bttv';
   id: string;
@@ -8,7 +10,13 @@ export interface Emote {
 
 export type EmotePart = { type: 'emote'; emote: Emote; overlays: Emote[] };
 
-export type MessagePart = { type: 'text'; text: string } | EmotePart;
+// От ссылки показываем только домен
+export type LinkPart = { type: 'link'; domain: string };
+
+// Упоминание «@ник»: name — ник без @, как написан
+export type MentionPart = { type: 'mention'; name: string };
+
+export type MessagePart = { type: 'text'; text: string } | EmotePart | LinkPart | MentionPart;
 
 export type EmoteMap = ReadonlyMap<string, Emote>;
 
@@ -33,9 +41,9 @@ function parseEmotesTag(tag: string): EmoteRange[] {
   return ranges.sort((a, b) => a.start - b.start);
 }
 
-// Разбивает текст на фрагменты по нативным эмодзи Twitch из тега emotes.
+// Разбивает текст на фрагменты по нативным эмодзи Twitch из тега emotes и по ссылкам.
 export function splitMessage(text: string, emotesTag: string | undefined): MessagePart[] {
-  if (!emotesTag) return [{ type: 'text', text }];
+  if (!emotesTag) return splitLinks(text);
 
   const chars = Array.from(text);
   const parts: MessagePart[] = [];
@@ -43,12 +51,12 @@ export function splitMessage(text: string, emotesTag: string | undefined): Messa
 
   for (const { id, start, end } of parseEmotesTag(emotesTag)) {
     if (start < cursor || end >= chars.length) continue;
-    if (start > cursor) parts.push({ type: 'text', text: chars.slice(cursor, start).join('') });
+    if (start > cursor) parts.push(...splitLinks(chars.slice(cursor, start).join('')));
     const name = chars.slice(start, end + 1).join('');
     parts.push({ type: 'emote', emote: { provider: 'twitch', id, name }, overlays: [] });
     cursor = end + 1;
   }
-  if (cursor < chars.length) parts.push({ type: 'text', text: chars.slice(cursor).join('') });
+  if (cursor < chars.length) parts.push(...splitLinks(chars.slice(cursor).join('')));
 
   return parts;
 }
@@ -82,6 +90,10 @@ export function expandEmotes(parts: MessagePart[], emotes: EmoteMap): MessagePar
       out.push({ ...part, overlays: [...part.overlays] });
       continue;
     }
+    if (part.type === 'link' || part.type === 'mention') {
+      out.push(part);
+      continue;
+    }
     for (const token of part.text.split(/(\s+)/)) {
       if (!token) continue;
       const emote = emotes.get(token);
@@ -101,7 +113,7 @@ export function emotesOnly(parts: MessagePart[]): EmotePart[] | null {
   const out: EmotePart[] = [];
   for (const part of parts) {
     if (part.type === 'emote') out.push(part);
-    else if (part.text.trim()) return null;
+    else if (part.type !== 'text' || part.text.trim()) return null;
   }
   return out.length ? out : null;
 }

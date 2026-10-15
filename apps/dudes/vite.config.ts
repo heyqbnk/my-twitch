@@ -58,4 +58,10 @@ function walkerSprites(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), walkerSprites()],
+  build: {
+    rolldownOptions: {
+      // Песочница для отладки сцены без настоящего чата — /playground.html
+      input: { main: resolve('index.html'), playground: resolve('playground.html') },
+    },
+  },
 });

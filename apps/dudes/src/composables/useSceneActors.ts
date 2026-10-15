@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, ref, watch, type Ref } from 'vue';
 import { actorPriority } from '../scene/actorPriority';
-import { actorAccessories, actorColor, actorHair, actorPosition, type Accessory } from '../scene/actorStyle';
+import { actorAccessories, actorColor, actorHair, actorOutfit, actorPosition, type Accessory, type Outfit } from '../scene/actorStyle';
 import type { ChatRole } from '../twitch/badges';
 import { shownAt, type ChatMessage } from './useTwitchChat';
 
@@ -19,6 +19,8 @@ export interface SceneActor {
   // Номер причёски в WALKER.hairstyles
   hairstyle: number;
   hairColor: string;
+  // Одежда: варианты из WALKER.clothes и цвета штанов и обуви, роботу не нужна
+  outfit: Outfit;
   // Аксессуары в порядке отрисовки, у робота их нет
   accessories: Accessory[];
   x: number;
@@ -75,6 +77,7 @@ export function useSceneActors(
           color: actorColor(msg),
           bot: msg.bot,
           ...actorHair(msg),
+          outfit: actorOutfit(msg),
           accessories: msg.bot ? [] : actorAccessories(msg),
           x: actorPosition(msg.login),
           lastMessage: msg,

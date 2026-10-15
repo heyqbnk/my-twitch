@@ -77,6 +77,53 @@ export function actorHair(msg: Pick<ChatMessage, 'userId' | 'login'>): { hairsty
   };
 }
 
+export type TopName = keyof typeof WALKER.clothes.tops;
+export type PantsName = keyof typeof WALKER.clothes.pants;
+export type ShoesName = keyof typeof WALKER.clothes.shoes;
+export interface Outfit {
+  top: TopName;
+  pants: PantsName;
+  pantsColor: string;
+  shoes: ShoesName;
+  shoesColor: string;
+}
+
+// Верх всегда в цвет ника, поэтому палитры только у штанов и обуви (у кед — цвет носка)
+const PANTS_COLORS: Record<PantsName, string[]> = {
+  jeans: ['#3b4a6b', '#2c3e66', '#4a6a9a', '#23252b', '#5b6170'],
+  shorts: ['#c2a878', '#3b4a6b', '#4a7a4a', '#b23a3a', '#1f1f26', '#8a6a4a'],
+  joggers: ['#3a3a42', '#7a7a84', '#1f2a44', '#8b1e2e', '#2f5d3a'],
+};
+const SHOES_COLORS: Record<ShoesName, string[]> = {
+  boots: ['#3a261c', '#6b4428', '#1f1b20', '#8a5a34'],
+  sneakers: ['#e53935', '#1e88e5', '#43a047', '#1f1f26', '#ff8f00', '#8e24aa'],
+  highboots: ['#1f1b20', '#3a261c', '#5a3d2b', '#2f3a2a'],
+};
+// Верх, который выпадает случайно; остальной (платье) — только по личному наряду
+const RANDOM_TOPS: TopName[] = ['longsleeve', 'tshirt', 'hoodie'];
+// Личные наряды по логину: перекрывают случайную одежду
+const PERSONAL_OUTFITS: Record<string, Partial<Pick<Outfit, 'top' | 'pants' | 'shoes'>>> = {
+  // Под платьем голые ноги — шорты под юбкой не видны
+  ilyinvp: { top: 'dress', pants: 'shorts' },
+};
+
+// Одежда и её цвета — из Twitch ID (а без него — из логина), одинаковы в разных сессиях
+export function actorOutfit(msg: Pick<ChatMessage, 'userId' | 'login'>): Outfit {
+  const key = msg.userId ?? msg.login;
+  const pick = <T>(list: readonly T[], seed: number) => list[hash(key, seed) % list.length];
+  const personal = PERSONAL_OUTFITS[msg.login];
+  const top = personal?.top ?? pick(RANDOM_TOPS, 0x1b873593);
+  const pants = personal?.pants ?? pick(Object.keys(PANTS_COLORS) as PantsName[], 0xcc9e2d51);
+  const shoes = personal?.shoes ?? pick(Object.keys(SHOES_COLORS) as ShoesName[], 0xe6546b64);
+  return {
+    top,
+    pants,
+    pantsColor: pick(PANTS_COLORS[pants], 0x5bd1e995),
+    shoes,
+    shoesColor: pick(SHOES_COLORS[shoes], 0x9e3779b1),
+  };
+}
+
 export type AccessoryName = keyof typeof WALKER.accessories;
 export interface Accessory {
   name: AccessoryName;

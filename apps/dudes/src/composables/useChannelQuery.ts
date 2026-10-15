@@ -46,7 +46,7 @@ export function useChannelQuery() {
   return computed(() => readChannel(params.value));
 }
 
-// Размер человечков из ?scale=<1–10>: экранных пикселей на пиксель спрайта
+// Размер человечков из ?scale=<1–10>: экранных пикселей на пиксель сцены
 export function useScaleQuery() {
   const params = useSearchParams();
   return computed(() => readScale(params.value));

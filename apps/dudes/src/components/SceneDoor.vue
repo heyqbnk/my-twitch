@@ -10,7 +10,7 @@ import {
   type Side,
 } from '../composables/useSceneDoors';
 
-// scale — экранных пикселей на пиксель спрайта
+// scale — экранных пикселей на пиксель сцены
 const props = defineProps<{ side: Side; view: DoorView; scale: number }>();
 
 // Створка ниже косяка на пиксель: над ней — верх проёма
@@ -39,7 +39,7 @@ function shade(hex: string, k: number): string {
   return `rgb(${channel(16)} ${channel(8)} ${channel(0)})`;
 }
 
-// Кадры поворота — видимая ширина створки в пикселях спрайта. Открываясь, створка
+// Кадры поворота — видимая ширина створки в пикселях сцены. Открываясь, створка
 // вываливается из-за края с небольшим перехлёстом; закрываясь — уходит обратно ребром.
 const OPEN_FRAMES = [1, 4, 8, 11, 13, 14, 13, 14];
 const CLOSE_FRAMES = [13, 11, 8, 4, 1, 0];

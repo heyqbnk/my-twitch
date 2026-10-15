@@ -16,3 +16,13 @@ export async function fetchFollowedAt(
   const subage = await fetchJson<IvrSubage>(`${API_URL}/subage/${login}/${channel}`, signal);
   return subage?.followedAt ? Date.parse(subage.followedAt) : null;
 }
+
+interface IvrUser {
+  id: string;
+}
+
+// Twitch ID по логину, null — такого пользователя нет
+export async function fetchUserId(login: string, signal?: AbortSignal): Promise<string | null> {
+  const users = await fetchJson<IvrUser[]>(`${API_URL}/user?login=${encodeURIComponent(login)}`, signal);
+  return users?.[0]?.id ?? null;
+}

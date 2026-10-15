@@ -3,6 +3,7 @@ import { isBot, parseRole, parseSubMonths, type ChatRole } from '../twitch/badge
 import { splitMessage, type MessagePart } from '../twitch/emotes';
 import { loadChatHistory, saveChatHistory } from '../storage/chatHistory';
 import { parseIrcLine, type IrcMessage } from '../twitch/irc';
+import { MENTION } from '../twitch/links';
 
 const TWITCH_IRC_URL = 'wss://irc-ws.chat.twitch.tv:443';
 const MAX_MESSAGES = 200;
@@ -12,8 +13,6 @@ const SAVE_DELAY = 500;
 const VANISH_COMMAND = '!vanish';
 // Прощание тоже уводит со сцены, но только адресованное всем: не ответ и без упоминаний
 const FAREWELLS = ['bb', 'бб'];
-// Упоминание «@ник»: @ не посреди слова (не адрес почты) и не задвоена
-const MENTION = /(?<![\p{L}\p{N}_@])@([\p{L}\p{N}_]+)/gu;
 
 export type ChatStatus = 'idle' | 'connecting' | 'connected' | 'disconnected';
 
@@ -68,7 +67,8 @@ function addresseesOf(msg: IrcMessage, login: string, text: string): string[] | 
   return names.size ? [...names] : undefined;
 }
 
-function toChatMessage(msg: IrcMessage): ChatMessage {
+// Сообщение PRIVMSG в виде для чата и сцены. Песочница собирает им сообщения от имени выдуманных зрителей
+export function toChatMessage(msg: IrcMessage): ChatMessage {
   const login = msg.prefix?.split('!')[0] ?? 'unknown';
   const text = msg.params[1] ?? '';
   const farewell = isFarewell(msg, text);

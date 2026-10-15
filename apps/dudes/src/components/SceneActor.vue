@@ -12,7 +12,7 @@ import { shownAt } from '../composables/useTwitchChat';
 import { HIGHLIGHTED_PRIORITY, TALKING_PRIORITY } from '../scene/actorPriority';
 import { WALKER } from '../scene/walkerSprite';
 import { ROLE_COLORS } from '../twitch/badges';
-import { emotesOnly } from '../twitch/emotes';
+import { emotesOnly, type MessagePart } from '../twitch/emotes';
 import ChatEmote from './ChatEmote.vue';
 import MessageText from './MessageText.vue';
 import RoleBadge from './RoleBadge.vue';
@@ -28,10 +28,10 @@ const NOD_CHARS = 15;
 const MAX_NODS = 10;
 // Сообщение длиннее стольких символов показываем в широком облачке
 const WIDE_BUBBLE_CHARS = 120;
-// Значок роли перед ником: над головой и в облачке ник 11px
-const BADGE_SIZE = 13;
+// Значок роли перед ником — по размеру шрифта ника (11px), чтобы не раздувать строку
+const BADGE_SIZE = 11;
 
-// scale — экранных пикселей на пиксель спрайта; exiting — пропал из списка и уходит со сцены
+// scale — экранных пикселей на пиксель сцены; exiting — пропал из списка и уходит со сцены
 const props = defineProps<{ actor: SceneActor; scale: number; exiting: boolean }>();
 // Вышел за дверь — можно убирать
 const emit = defineEmits<{ exited: [] }>();
@@ -40,19 +40,24 @@ const emit = defineEmits<{ exited: [] }>();
 // ui — сколько экранных пикселей занимает пиксель интерфейса, при scale по умолчанию 1
 const ui = computed(() => props.scale / DEFAULT_SCALE);
 
-// Слои спрайта: у робота свои, у человечка — общие пиксели слоя плюс пиксели его причёски
-const spriteLayers = computed<readonly { fill: string; d: string }[]>(() => (
-  props.actor.bot
-    ? WALKER.robot
-    : WALKER.layers.map(layer => ({
-      fill: layer.fill,
-      d: layer.d + layer.hairstyles[props.actor.hairstyle],
-    }))
-));
+// Слои спрайта: у робота свои, у человечка — общие пиксели слоя плюс пиксели его причёски,
+// а поверх — одежда: штаны, обувь, верх
+const spriteLayers = computed<readonly { fill: string; d: string }[]>(() => {
+  if (props.actor.bot) return WALKER.robot;
+  const { outfit, hairstyle } = props.actor;
+  return [
+    ...WALKER.layers.map(layer => ({ fill: layer.fill, d: layer.d + layer.hairstyles[hairstyle] })),
+    ...WALKER.clothes.pants[outfit.pants],
+    ...WALKER.clothes.shoes[outfit.shoes],
+    ...WALKER.clothes.tops[outfit.top],
+  ];
+});
 
 function paint(fill: string): string {
   if (fill === 'shirt') return props.actor.color;
   if (fill === 'hair') return props.actor.hairColor;
+  if (fill === 'pants') return props.actor.outfit.pantsColor;
+  if (fill === 'shoes') return props.actor.outfit.shoesColor;
   return fill;
 }
 
@@ -68,8 +73,13 @@ const headwearClip = computed(
     .find(clip => clip !== null) ?? null,
 );
 
+// Кисть с табличкой в пикселях сцены (у спрайта их в WALKER.res раз больше)
+const HOLD_HAND = { x: WALKER.holdHand.x / WALKER.res, y: WALKER.holdHand.y / WALKER.res };
+// Размер кадра в пикселях сцены
+const FRAME_WIDTH = WALKER.frameWidth / WALKER.res;
+const FRAME_HEIGHT = WALKER.frameHeight / WALKER.res;
 // Высота шеста таблички: от кисти до чуть выше макушки
-const POLE_HEIGHT = WALKER.holdHand.y + 3;
+const POLE_HEIGHT = HOLD_HAND.y + 3;
 
 // У владельца, модераторов и VIP ник жирный и в цвет роли — и над головой, и в облачке
 const roleColor = computed(() => (props.actor.role ? ROLE_COLORS[props.actor.role] : null));
@@ -78,7 +88,18 @@ const messageParts = useMessageParts();
 // Сообщение из одних эмодзи человечек показывает на табличке вместо облачка
 const emoteOnly = computed(() => emotesOnly(messageParts(props.actor.lastMessage)));
 const messageLength = computed(() => messageParts(props.actor.lastMessage)
-  .reduce((sum, part) => sum + [...(part.type === 'text' ? part.text : part.emote.name)].length, 0));
+  .reduce((sum, part) => sum + [...(
+    partText(part)
+  )].length, 0));
+
+function partText(part: MessagePart): string {
+  switch (part.type) {
+    case 'text': return part.text;
+    case 'link': return part.domain;
+    case 'mention': return part.name;
+    case 'emote': return part.emote.name;
+  }
+}
 const nods = computed(() => {
   const count = Math.ceil(messageLength.value / NOD_CHARS);
   return Math.min(MAX_NODS, Math.max(1, count));
@@ -111,7 +132,7 @@ const {
 // На сцену человечек заходит из-за края, ближайшего к его месту, через дверь у этого края,
 // а уходит через дверь у ближайшего к нему края, ускорив шаг
 const EXIT_SPEED = 1.3;
-// Зазор между человечком и створкой, в пикселях спрайта
+// Зазор между человечком и створкой, в пикселях сцены
 const DOOR_GAP = 2;
 // Войдя, человечек проходит от двери до GREET_MAX_DISTANCE экранных пикселей
 // и машет зрителям WAVE_MS мс: взмах туда-обратно за WAVE_CYCLE_MS
@@ -217,7 +238,7 @@ function fromSceneEdge(side: Side, fromEdge: number) {
   return side === 'left' ? at : 1 - at;
 }
 
-const halfBody = () => (WALKER.frameWidth * px.value) / 2;
+const halfBody = () => (FRAME_WIDTH * px.value) / 2;
 // За краем сцены, целиком скрыт
 const offstage = (side: Side) => fromSceneEdge(side, -halfBody());
 // Перед дверью: открывающаяся створка его не задевает
@@ -425,10 +446,10 @@ const spriteRow = computed(() => {
   if (facingFront.value) return holdingSign.value ? 5 : 4;
   return (holdingSign.value ? 2 : 0) + (facing.value === 'left' ? 1 : 0);
 });
-// Смещение шеста от центра человечка (в пикселях спрайта), зеркалится при повороте влево.
+// Смещение шеста от центра человечка (в пикселях сцены), зеркалится при повороте влево.
 // Анфас шест в той же руке, что и при взгляде вправо
 const poleOffset = computed(() => {
-  const fromCenter = WALKER.holdHand.x + 0.5 - WALKER.frameWidth / 2;
+  const fromCenter = HOLD_HAND.x - FRAME_WIDTH / 2;
   return facing.value === 'left' && !facingFront.value ? -fromCenter : fromCenter;
 });
 // С табличкой никнейм переезжает к центру доски: она висит на шесте в руке, а не над головой
@@ -519,7 +540,7 @@ function collapseSign(el: Element) {
   sign.style.height = `${sign.offsetHeight}px`;
   // фиксируем начальную высоту, иначе переход не запустится
   void sign.offsetHeight;
-  sign.style.height = `${WALKER.holdHand.y * px.value}px`;
+  sign.style.height = `${HOLD_HAND.y * px.value}px`;
 }
 
 watch(
@@ -662,7 +683,7 @@ onBeforeUnmount(() => {
           class="actor__sign"
           :style="{
             transform: `translateX(${poleOffset * px}px)`,
-            marginBottom: `${-WALKER.holdHand.y * px}px`,
+            marginBottom: `${-HOLD_HAND.y * px}px`,
           }"
         >
           <div
@@ -704,7 +725,7 @@ onBeforeUnmount(() => {
       </Transition>
       <div
         class="actor__body"
-        :style="{ width: `${WALKER.frameWidth * px}px`, height: `${WALKER.frameHeight * px}px` }"
+        :style="{ width: `${FRAME_WIDTH * px}px`, height: `${FRAME_HEIGHT * px}px` }"
       >
         <!-- Спрайт-лист: строка — поза и направление,
              столбец — кадр (0 — стоит, 1–4 — шаг или взмах).
@@ -712,8 +733,8 @@ onBeforeUnmount(() => {
         <svg
           class="sprite"
           :viewBox="frameBox(0)"
-          :width="WALKER.frameWidth * px"
-          :height="WALKER.frameHeight * px"
+          :width="FRAME_WIDTH * px"
+          :height="FRAME_HEIGHT * px"
           shape-rendering="crispEdges"
         >
           <animate
@@ -729,7 +750,7 @@ onBeforeUnmount(() => {
               <clipPath v-if="headwearClip" :id="clipId">
                 <path :d="headwearClip" />
               </clipPath>
-              <!-- Рубашка (корпус робота) — в цвет ника, волосы — в цвет волос -->
+              <!-- Верх (корпус робота) — в цвет ника, волосы, штаны и обувь — в свои цвета -->
               <g :clip-path="headwearClip ? `url(#${clipId})` : undefined">
                 <path
                   v-for="(layer, i) in spriteLayers"
@@ -761,7 +782,7 @@ onBeforeUnmount(() => {
             <g
               :key="actor.lastMessage.id"
               class="sprite__head"
-              :style="{ animationIterationCount: nods }"
+              :style="{ animationIterationCount: nods, '--nod': `${WALKER.res}px` }"
             >
               <use :href="`#${spriteId}`" :clip-path="`url(#${headClipId})`" />
             </g>
@@ -811,7 +832,8 @@ onBeforeUnmount(() => {
 /* Голова опускается на пиксель листа, закрывая шею, и возвращается */
 @keyframes nod {
   50% {
-    transform: translateY(1px);
+    /* на пиксель сцены */
+    transform: translateY(var(--nod));
   }
 }
 
@@ -907,8 +929,10 @@ onBeforeUnmount(() => {
   color: #fff;
 }
 
-.actor__badge {
+img.actor__badge {
   filter: var(--icon-outline);
+  /* Строка ника высотой ровно в шрифт: значок занимает её целиком и не сдвигает ник вверх */
+  vertical-align: top;
 }
 
 .actor__name--role {
@@ -952,7 +976,7 @@ onBeforeUnmount(() => {
 
 .actor__bubble-body {
   min-height: 0;
-  padding: calc(var(--ui) * 6) calc(var(--ui) * 10);
+  padding: calc(var(--ui) * 4) calc(var(--ui) * 10);
   border: var(--bubble-border);
   border-radius: var(--bubble-radius);
   font-size: calc(var(--ui) * 13);

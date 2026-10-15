@@ -3,7 +3,7 @@ import { inject, onScopeDispose, provide, reactive, type InjectionKey } from 'vu
 export type Side = 'left' | 'right';
 export const SIDES: Side[] = ['left', 'right'];
 
-// Размеры в пикселях спрайта, на экране умножаются на масштаб: косяк у самого края сцены
+// Размеры в пикселях сцены, на экране умножаются на масштаб: косяк у самого края сцены
 // и створка на петлях у него. Закрытая створка стоит ребром к зрителю и не видна,
 // открываясь — поворачивается из-за края сцены к зрителю.
 export const DOOR_JAMB = 2;

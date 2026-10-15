@@ -2,6 +2,7 @@
 import { computed, toRef } from 'vue';
 import { useDelayQuery, useScaleQuery, useStayQuery } from '../composables/useChannelQuery';
 import { useFollowDates } from '../composables/useFollowDates';
+import { provideMentionColor } from '../composables/useMentionColor';
 import { provideMessageParts } from '../composables/useMessageParts';
 import { useSceneActors } from '../composables/useSceneActors';
 import { useThirdPartyEmotes } from '../composables/useThirdPartyEmotes';
@@ -14,6 +15,7 @@ const props = defineProps<{ channel: string }>();
 const channel = toRef(props, 'channel');
 const { messages, roomId } = useTwitchChat(channel, useDelayQuery());
 provideMessageParts(useThirdPartyEmotes(roomId));
+provideMentionColor(messages);
 // Дата фоллова нужна только зрителям без роли и подписки
 const followLogins = computed(() => [
   ...new Set(messages.value.filter(needsFollowDate).map(m => m.login)),
