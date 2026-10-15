@@ -85,7 +85,7 @@ function exited(login: string) {
 }
 
 .scene__floor {
-  height: 30px;
+  height: 32px;
   border-top: 2px solid var(--border);
   background: var(--code-bg);
 }

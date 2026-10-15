@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
+import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig, type Plugin } from 'vite';
 
@@ -57,7 +58,7 @@ function walkerSprites(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), walkerSprites()],
+  plugins: [vue(), tailwindcss(), walkerSprites()],
   build: {
     rolldownOptions: {
       // Песочница для отладки сцены без настоящего чата — /playground.html

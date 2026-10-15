@@ -1,0 +1,9 @@
+#!/bin/sh
+# Strip AI attribution (co-author trailers, "Generated with" lines) from commit messages.
+msg="$1"
+ai='claude|anthropic|copilot|cursor|codex|openai|chatgpt|gpt|gemini|aider|devin|windsurf|codeium|junie|amazon q|codewhisperer'
+tmp="$(mktemp)"
+grep -viE "^co-authored-by:.*($ai)|^[^a-z0-9]*generated (with|by) .*($ai)" "$msg" \
+  | awk '{ lines[NR] = $0 } END { n = NR; while (n > 0 && lines[n] ~ /^[[:space:]]*$/) n--; for (i = 1; i <= n; i++) print lines[i] }' > "$tmp"
+cat "$tmp" > "$msg"
+rm -f "$tmp"

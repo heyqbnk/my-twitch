@@ -862,7 +862,7 @@ onBeforeUnmount(() => {
   border: var(--px) solid #6b4423;
   border-radius: 10px;
   background: #f0d9b5;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.18);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 18%);
 }
 
 .actor__board--first {
@@ -873,7 +873,7 @@ onBeforeUnmount(() => {
   border-color: var(--highlight);
   box-shadow:
     0 0 10px color-mix(in srgb, var(--highlight) 60%, transparent),
-    0 4px 12px rgb(0 0 0 / 0.18);
+    0 4px 12px rgb(0 0 0 / 18%);
 }
 
 /* Высота — как у текста облачка: 6 его строк, остальное прокручивается */
@@ -900,7 +900,7 @@ onBeforeUnmount(() => {
   width: var(--px);
   background: #8a5a2b;
   /* Тёмный край шеста — объём в пиксельном стиле */
-  box-shadow: inset calc(var(--px) * -0.34) 0 rgb(0 0 0 / 0.25);
+  box-shadow: inset calc(var(--px) * -0.34) 0 rgb(0 0 0 / 25%);
 }
 
 /* Табличку «достают» снизу, из руки */
@@ -987,7 +987,7 @@ img.actor__badge {
   overflow: hidden;
   color: var(--text-h);
   background: var(--bubble-bg);
-  box-shadow: var(--bubble-shadow, 0 4px 12px rgb(0 0 0 / 0.12));
+  box-shadow: var(--bubble-shadow, 0 4px 12px rgb(0 0 0 / 12%));
   transition: height 0.2s ease-out;
 }
 
@@ -997,6 +997,8 @@ img.actor__badge {
   position: absolute;
   top: 100%;
   left: clamp(var(--tail-inset), calc(50% - var(--bubble-shift)), calc(100% - var(--tail-inset)));
+  /* --tail-size is the inner square, the border is drawn outside of it */
+  box-sizing: content-box;
   width: var(--tail-size);
   height: var(--tail-size);
   border-right: var(--bubble-border);
@@ -1012,13 +1014,13 @@ img.actor__badge {
 @property --fade-top {
   syntax: '<length>';
   inherits: false;
-  initial-value: 0px;
+  initial-value: 0;
 }
 
 @property --fade-bottom {
   syntax: '<length>';
   inherits: false;
-  initial-value: 0px;
+  initial-value: 0;
 }
 
 .actor__bubble-scroll {
@@ -1027,6 +1029,8 @@ img.actor__badge {
      иначе их края обрезаются, а торчащий низ считается переполнением и запускает прокрутку.
      Отрицательный margin возвращает облачку прежний размер */
   --emote-overhang: calc(var(--emote-size) / 7);
+  /* Six lines of text fit inside, the padding comes on top */
+  box-sizing: content-box;
   max-height: calc(6 * 1.2em);
   padding: var(--emote-overhang) 0;
   margin: calc(-1 * var(--emote-overhang)) 0;
@@ -1037,10 +1041,10 @@ img.actor__badge {
   overflow: hidden;
   mask-image: linear-gradient(
     to bottom,
-    rgb(0 0 0 / 0.15),
+    rgb(0 0 0 / 15%),
     #000 var(--fade-top),
     #000 calc(100% - var(--fade-bottom)),
-    rgb(0 0 0 / 0.15)
+    rgb(0 0 0 / 15%)
   );
   transition:
     --fade-top 0.3s ease-out,
@@ -1080,7 +1084,7 @@ img.actor__badge {
   --bubble-bg: color-mix(in srgb, var(--highlight) 22%, var(--bg));
   --bubble-shadow:
     0 0 10px color-mix(in srgb, var(--highlight) 60%, transparent),
-    0 4px 12px rgb(0 0 0 / 0.12);
+    0 4px 12px rgb(0 0 0 / 12%);
 }
 
 /* Бот пишет в терминал: тёмное окно с почти прямыми углами, зелёный моноширинный текст
@@ -1097,21 +1101,21 @@ img.actor__badge {
   --bubble-border: 1px solid #2c4a36;
   --bubble-bg: #0b120e;
   --bubble-shadow:
-    0 0 calc(var(--ui) * 8) rgb(74 222 128 / 0.2),
-    0 4px 12px rgb(0 0 0 / 0.3);
+    0 0 calc(var(--ui) * 8) rgb(74 222 128 / 20%),
+    0 4px 12px rgb(0 0 0 / 30%);
 }
 
 .actor__bubble--bot .actor__bubble-body {
   font-size: calc(var(--ui) * 12);
   color: #4ade80;
-  text-shadow: 0 0 calc(var(--ui) * 3) rgb(74 222 128 / 0.5);
+  text-shadow: 0 0 calc(var(--ui) * 3) rgb(74 222 128 / 50%);
 }
 
 /* Префикс и в невидимой копии сообщения, по которой облачко берёт ширину */
 .actor__bubble--bot .actor__bubble-text::before,
 .actor__bubble--bot .actor__bubble-text :deep(.message-text__ghost)::before {
   content: '$ ';
-  color: rgb(74 222 128 / 0.55);
+  color: rgb(74 222 128 / 55%);
 }
 
 .actor__cursor {
