@@ -1,5 +1,5 @@
 import { computed, onScopeDispose, ref, type Ref } from 'vue';
-import { FACING_SOUTH, FPS, FRAME_SIZE, START_WALK, STOP_TURN_SOUTH, WALK } from '../paperDoll';
+import { FACING_SOUTH, FPS, FRAME_SIZE, START_WALK, STOP_TURN_SOUTH, WALK, type Frame } from '../paperDoll';
 
 export type Direction = 'west' | 'east';
 
@@ -69,7 +69,7 @@ export function useWalker(input: Ref<Direction | null>, width: Ref<number>) {
   const timer = setInterval(tick, 1000 / FPS);
   onScopeDispose(() => clearInterval(timer));
 
-  const src = computed(() => {
+  const frame = computed<Frame>(() => {
     const s = state.value;
     if (s.kind === 'start') return START_WALK[s.frame]!;
     if (s.kind === 'walk') return WALK[s.frame]!;
@@ -79,5 +79,5 @@ export function useWalker(input: Ref<Direction | null>, width: Ref<number>) {
   /** Only west frames exist, so walking east (and stopping after it) is drawn mirrored. */
   const mirrored = computed(() => state.value.direction === 'east');
 
-  return { x, src, mirrored };
+  return { x, frame, mirrored };
 }

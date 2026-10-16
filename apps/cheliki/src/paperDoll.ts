@@ -1,4 +1,4 @@
-const ANIMATIONS_URL = '/characters/paper-doll/Idle/animations';
+const CHARACTER_URL = '/characters/paper-doll';
 
 export const FPS = 10;
 /** Frame canvas in px: v3 grows it past the 64px sprite. */
@@ -11,13 +11,33 @@ export const FRAME_SIZE = 76;
 export const MIRROR_OFFSET = -1;
 
 /**
+ * A frame's path inside an animations folder, e.g. `walk-loop/west/frame_000.png`.
+ * The body, the eyes and every clothing layer share it, so one frame addresses them all.
+ */
+export type Frame = string;
+
+/** Clothing drawn over the body; its layers live in `clothes/<name>/`. */
+export type Clothing = 't-shirt' | 'jeans' | 'shorts';
+
+/**
+ * Eyes drawn over the body, which has none; their layers live in `eyes/<name>/`.
+ * `sticks` are the original ones and mark where the eyes go: scripts/place-eyes.mjs
+ * draws the rest from them.
+ */
+export type Eyes = 'sticks' | 'big' | 'sleepy' | 'happy';
+
+export const bodyUrl = (frame: Frame) => `${CHARACTER_URL}/Idle/animations/${frame}`;
+export const clothingUrl = (clothing: Clothing, frame: Frame) => `${CHARACTER_URL}/clothes/${clothing}/${frame}`;
+export const eyesUrl = (eyes: Eyes, frame: Frame) => `${CHARACTER_URL}/eyes/${eyes}/${frame}`;
+
+/**
  * Only west frames exist: east is the same frames mirrored.
  * Names follow the PixelLab export: frame_000..frame_00N.
  */
-function westFrames(animation: string, frameCount: number) {
+function westFrames(animation: string, frameCount: number): Frame[] {
   return Array.from(
     { length: frameCount },
-    (_, i) => `${ANIMATIONS_URL}/${animation}/west/frame_${String(i).padStart(3, '0')}.png`,
+    (_, i) => `${animation}/west/frame_${String(i).padStart(3, '0')}.png`,
   );
 }
 
@@ -30,3 +50,6 @@ export const FACING_SOUTH = STOP_TURN_SOUTH.at(-1)!;
  * Its ends are trimmed: they repeat FACING_SOUTH and WALK[0].
  */
 export const START_WALK = westFrames('start-walk', 9).slice(1, -1);
+
+/** Every frame the dude is drawn with: clothing layers exist for exactly these. */
+export const FRAMES: Frame[] = [...WALK, ...STOP_TURN_SOUTH, ...START_WALK];
