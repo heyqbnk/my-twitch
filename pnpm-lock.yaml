@@ -170,7 +170,7 @@ importers:
         specifier: ^2.11.7
         version: 2.11.7
 
-  apps/dudes:
+  apps/cheliki:
     dependencies:
       vue:
         specifier: ^3.5.42
@@ -240,7 +240,7 @@ importers:
         specifier: ^3.3.11
         version: 3.3.13(typescript@6.0.3)
 
-  apps/dudes2:
+  apps/dudes:
     dependencies:
       vue:
         specifier: ^3.5.42

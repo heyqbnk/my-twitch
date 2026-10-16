@@ -1,0 +1,67 @@
+{
+  "group_id": "65bb978c-f62d-4b9f-b408-d2c697eabf5e",
+  "states": [
+    {
+      "character": {
+        "id": "d54632f9-a244-4154-8000-e1155f891ebc",
+        "name": "Idle",
+        "prompt": "simple human mannequin base character for a paper-doll customization system,\ncompletely unclothed smooth featureless body like a plastic doll, no anatomical details,\nbald head with no hair, clean-shaven face with no beard or mustache,\nsimple face with two small dot eyes and a small mouth,\nbarefoot, neutral skin tone, flat colors, clean readable silhouette,\nno clothing, no underwear, no accessories, no jewelry, no patterns, no props\n",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 3,
+        "view": "low top-down",
+        "created_at": "2026-10-15T21:04:18.438497+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "east": "Idle/rotations/east.png",
+          "west": "Idle/rotations/west.png"
+        },
+        "animations": {
+          "walk-v3-loop": {
+            "west": [
+              "Idle/animations/walk-v3-loop/west/frame_000.png",
+              "Idle/animations/walk-v3-loop/west/frame_001.png",
+              "Idle/animations/walk-v3-loop/west/frame_002.png",
+              "Idle/animations/walk-v3-loop/west/frame_003.png",
+              "Idle/animations/walk-v3-loop/west/frame_004.png",
+              "Idle/animations/walk-v3-loop/west/frame_005.png",
+              "Idle/animations/walk-v3-loop/west/frame_006.png",
+              "Idle/animations/walk-v3-loop/west/frame_007.png"
+            ]
+          },
+          "stop-turn-south": {
+            "west": [
+              "Idle/animations/stop-turn-south/west/frame_000.png",
+              "Idle/animations/stop-turn-south/west/frame_001.png",
+              "Idle/animations/stop-turn-south/west/frame_002.png",
+              "Idle/animations/stop-turn-south/west/frame_003.png",
+              "Idle/animations/stop-turn-south/west/frame_004.png",
+              "Idle/animations/stop-turn-south/west/frame_005.png",
+              "Idle/animations/stop-turn-south/west/frame_006.png",
+              "Idle/animations/stop-turn-south/west/frame_007.png"
+            ]
+          },
+          "start-walk-west": {
+            "west": [
+              "Idle/animations/start-walk-west/west/frame_000.png",
+              "Idle/animations/start-walk-west/west/frame_001.png",
+              "Idle/animations/start-walk-west/west/frame_002.png",
+              "Idle/animations/start-walk-west/west/frame_003.png",
+              "Idle/animations/start-walk-west/west/frame_004.png",
+              "Idle/animations/start-walk-west/west/frame_005.png",
+              "Idle/animations/start-walk-west/west/frame_006.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-15T21:45:34.275022"
+}
