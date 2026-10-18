@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onScopeDispose, ref } from 'vue';
-import { bodyUrl, eyesUrl, FACING_SOUTH, FPS, FRAME_SIZE, STOP_TURN_SOUTH, WALK } from './paperDoll';
+import { bodyUrl, FACING_SOUTH, FPS, FRAME_SIZE, STOP_TURN_SOUTH, WALK } from './paperDoll';
 
 const SCALE = 2;
 const WALK_CYCLES = 2;
@@ -35,12 +35,6 @@ onScopeDispose(() => clearInterval(timer));
         :alt="`dude ${side}`"
         :width="FRAME_SIZE * SCALE"
         class="block"
-      >
-      <img
-        :src="eyesUrl('sticks', PLAYLIST[frame]!)"
-        alt=""
-        :width="FRAME_SIZE * SCALE"
-        class="absolute inset-0"
       >
     </div>
   </div>
