@@ -1,5 +1,5 @@
 import { computed, onScopeDispose, ref } from 'vue';
-import type { Direction } from './useWalker';
+import type { Direction } from '../doll/paperDoll';
 
 const KEYS: Record<string, Direction> = {
   ArrowLeft: 'west',

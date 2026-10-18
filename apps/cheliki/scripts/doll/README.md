@@ -12,8 +12,8 @@ export ASEPRITE="D:/SteamLibrary/steamapps/common/Aseprite/Aseprite.exe"   # for
 
 - `Idle/animations/<animation>/<direction>/frame_NNN.png`: body frames without eyes, brows and
   mouth (the nose stays).
-- `face-anchors.json`: per body frame, where the eyes and the mouth go.
-- `face-stamps.json`: the face stamps, from `stamps.py` (`python export_stamps.py`).
+- `src/doll/face-anchors.json`: per body frame, where the eyes and the mouth go.
+- `src/doll/face-stamps.json`: the face stamps, from `stamps.py` (`python export_stamps.py`).
 
 ## Scripts
 

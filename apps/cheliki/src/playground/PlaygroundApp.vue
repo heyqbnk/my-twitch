@@ -1,10 +1,42 @@
 <script setup lang="ts">
-import { computed, onScopeDispose, ref } from 'vue';
-import { bodyUrl, FRAME_SIZE, MIRROR_OFFSET } from '../paperDoll';
+import { computed, onScopeDispose, reactive, ref } from 'vue';
+import DollSprite from '../doll/DollSprite.vue';
+import { BROWS, EYES, loadBody, MOUTHS, type Brows, type Eyes, type Face, type Mouth } from '../doll/face';
+import { FRAMES, SPRITE_SIZE } from '../doll/paperDoll';
+import { useBlink } from '../doll/useBlink';
 import { useHeldDirection } from './useHeldDirection';
 import { useWalker } from './useWalker';
 
 const SCALE = 2;
+
+const EYE_LABELS: Record<Eyes, string> = {
+  bead: 'Бусинки',
+  open: 'Открытые',
+  sleepy: 'Сонные',
+  lashes: 'С ресничкой',
+  anime: 'Аниме',
+  narrow: 'Узкие',
+  happy: 'Довольные',
+};
+const BROW_LABELS: Record<Brows, string> = {
+  thin: 'Тонкие',
+  thick: 'Густые',
+  arched: 'Дугой',
+  stern: 'Суровые',
+  angular: 'Угловатые',
+  feathered: 'Пушистые',
+  tapered: 'Сужающиеся',
+  worried: 'Грустные',
+};
+const MOUTH_LABELS: Record<Mouth, string> = {
+  neutral: 'Ровный',
+  smile: 'Улыбка',
+  grin: 'Улыбка с зубами',
+  laugh: 'Смех',
+  smirk: 'Ухмылка',
+};
+
+for (const frame of FRAMES) void loadBody(frame);
 
 const viewportWidth = ref(window.innerWidth);
 function onResize() {
@@ -16,34 +48,45 @@ onScopeDispose(() => window.removeEventListener('resize', onResize));
 /** Walkable width in sprite px. */
 const width = computed(() => Math.floor(viewportWidth.value / SCALE));
 const direction = useHeldDirection();
-const { x, frame, mirrored } = useWalker(direction, width);
-x.value = Math.floor((width.value - FRAME_SIZE) / 2);
+const { x, frame } = useWalker(direction, width);
+x.value = Math.floor((width.value - SPRITE_SIZE) / 2);
+
+const face = reactive<Face>({ eyes: 'open', brows: 'thin', mouth: 'smile' });
+const blink = useBlink();
 </script>
 
 <template>
   <div class="relative h-dvh overflow-hidden bg-neutral-800 text-neutral-400">
     <div class="flex items-center gap-4 p-4">
       <p>← → или A D — идти</p>
+      <label class="flex items-center gap-2">
+        Глаза
+        <select v-model="face.eyes" class="bg-neutral-700">
+          <option v-for="eyes in EYES" :key="eyes" :value="eyes">
+            {{ EYE_LABELS[eyes] }}
+          </option>
+        </select>
+      </label>
+      <label class="flex items-center gap-2">
+        Брови
+        <select v-model="face.brows" class="bg-neutral-700">
+          <option v-for="brows in BROWS" :key="brows" :value="brows">
+            {{ BROW_LABELS[brows] }}
+          </option>
+        </select>
+      </label>
+      <label class="flex items-center gap-2">
+        Рот
+        <select v-model="face.mouth" class="bg-neutral-700">
+          <option v-for="mouth in MOUTHS" :key="mouth" :value="mouth">
+            {{ MOUTH_LABELS[mouth] }}
+          </option>
+        </select>
+      </label>
     </div>
     <!-- Whole sprite px only, so the pixel art stays sharp -->
-    <div
-      :style="{ translate: `${(x + (mirrored ? MIRROR_OFFSET : 0)) * SCALE}px 0` }"
-      :class="[cn.dude, mirrored && cn.dudeMirrored]"
-    >
-      <img :src="bodyUrl(frame)" alt="dude" :width="FRAME_SIZE * SCALE" class="block">
+    <div class="absolute bottom-0 left-0" :style="{ translate: `${x * SCALE}px 0` }">
+      <DollSprite :frame="frame" :face="face" :blink="blink" :scale="SCALE" />
     </div>
   </div>
 </template>
-
-<style module="cn">
-.dude {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  image-rendering: pixelated;
-}
-
-.dudeMirrored {
-  scale: -1 1;
-}
-</style>

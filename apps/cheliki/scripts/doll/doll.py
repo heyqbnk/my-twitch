@@ -11,8 +11,9 @@ DOLL = APP / 'public/characters/paper-doll-128'
 IDLE = DOLL / 'Idle'
 HEAD = DOLL / 'head'
 BASE_ASEPRITE = DOLL / 'base.aseprite'
-ANCHORS_JSON = DOLL / 'face-anchors.json'
-STAMPS_JSON = DOLL / 'face-stamps.json'
+# The app imports these two, so they live in src/ (Vite doesn't import from public/)
+ANCHORS_JSON = APP / 'src/doll/face-anchors.json'
+STAMPS_JSON = APP / 'src/doll/face-stamps.json'
 PROFILE_EYES_JSON = HEAD / 'stamps/profile-eyes.json'
 LUA = Path(__file__).resolve().parent / 'aseprite'
 

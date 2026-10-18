@@ -1,52 +1,44 @@
 <script setup lang="ts">
 import { onScopeDispose, ref } from 'vue';
-import { bodyUrl, FACING_SOUTH, FPS, FRAME_SIZE, STOP_TURN_SOUTH, WALK } from './paperDoll';
+import DollSprite from './doll/DollSprite.vue';
+import { loadBody, type Face } from './doll/face';
+import { FPS, FRAMES, IDLE, SOUTH_TURN_WALK, STOP_TURN_SOUTH, WALK, type Direction } from './doll/paperDoll';
+import { useBlink } from './doll/useBlink';
 
-const SCALE = 2;
+const IDLE_CYCLES = 3;
 const WALK_CYCLES = 2;
-/** How long the dude stands facing the viewer after the turn, in frames. */
-const HOLD_FRAMES = 15;
+const FACE: Face = { eyes: 'open', brows: 'thin', mouth: 'smile' };
 
-/** Demo: walk, stop and turn to the viewer, stand for a while, repeat. */
-const PLAYLIST = [
-  ...Array.from({ length: WALK_CYCLES }, () => WALK).flat(),
-  ...STOP_TURN_SOUTH,
-  ...Array.from({ length: HOLD_FRAMES }, () => FACING_SOUTH),
+/**
+ * Demo: breathe, turn and walk, stop and turn to the viewer, repeat. Frames that repeat their
+ * neighbor at a seam are dropped: SOUTH_TURN_WALK ends on WALK[0], STOP_TURN_SOUTH on IDLE[0].
+ */
+const playlist = (direction: Direction) => [
+  ...Array.from({ length: IDLE_CYCLES }, () => IDLE).flat(),
+  ...SOUTH_TURN_WALK[direction],
+  ...WALK[direction].slice(1),
+  ...Array.from({ length: WALK_CYCLES - 1 }, () => WALK[direction]).flat(),
+  ...STOP_TURN_SOUTH[direction].slice(0, -1),
 ];
+const PLAYLISTS = { west: playlist('west'), east: playlist('east') };
 
-const frame = ref(0);
-const timer = setInterval(() => {
-  frame.value = (frame.value + 1) % PLAYLIST.length;
-}, 1000 / FPS);
+for (const frame of FRAMES) void loadBody(frame);
+
+const tick = ref(0);
+const timer = setInterval(() => tick.value++, 1000 / FPS);
 onScopeDispose(() => clearInterval(timer));
+const blink = useBlink();
 </script>
 
 <template>
   <div class="flex items-end gap-4 p-4">
-    <!-- No separate east animations: the west frames are mirrored -->
-    <div
-      v-for="side in ['west', 'east']"
+    <DollSprite
+      v-for="(frames, side) in PLAYLISTS"
       :key="side"
       :title="side"
-      :class="[cn.sprite, side === 'east' && cn.spriteMirrored]"
-    >
-      <img
-        :src="bodyUrl(PLAYLIST[frame]!)"
-        :alt="`dude ${side}`"
-        :width="FRAME_SIZE * SCALE"
-        class="block"
-      >
-    </div>
+      :frame="frames[tick % frames.length]!"
+      :face="FACE"
+      :blink="blink"
+    />
   </div>
 </template>
-
-<style module="cn">
-.sprite {
-  position: relative;
-  image-rendering: pixelated;
-}
-
-.spriteMirrored {
-  transform: scaleX(-1);
-}
-</style>
