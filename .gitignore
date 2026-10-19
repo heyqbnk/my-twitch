@@ -28,6 +28,3 @@ walker-preview.*
 
 # Turborepo
 .turbo
-
-# Python
-__pycache__

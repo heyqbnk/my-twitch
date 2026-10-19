@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onScopeDispose, reactive, ref } from 'vue';
 import DollSprite from '../doll/DollSprite.vue';
-import { BROWS, EYES, loadBody, MOUTHS, type Brows, type Eyes, type Face, type Mouth } from '../doll/face';
+import { BROWS, EYES, loadBody, MOUTHS, type Face } from '../doll/face';
 import { FRAMES, SPRITE_SIZE } from '../doll/paperDoll';
 import { useBlink } from '../doll/useBlink';
 import { useHeldDirection } from './useHeldDirection';
@@ -9,16 +9,16 @@ import { useWalker } from './useWalker';
 
 const SCALE = 2;
 
-const EYE_LABELS: Record<Eyes, string> = {
+// Parts without a label (new layers in base.aseprite) show their name
+const EYE_LABELS: Record<string, string> = {
   bead: 'Бусинки',
   open: 'Открытые',
   sleepy: 'Сонные',
   lashes: 'С ресничкой',
   anime: 'Аниме',
-  narrow: 'Узкие',
   happy: 'Довольные',
 };
-const BROW_LABELS: Record<Brows, string> = {
+const BROW_LABELS: Record<string, string> = {
   thin: 'Тонкие',
   thick: 'Густые',
   arched: 'Дугой',
@@ -28,7 +28,7 @@ const BROW_LABELS: Record<Brows, string> = {
   tapered: 'Сужающиеся',
   worried: 'Грустные',
 };
-const MOUTH_LABELS: Record<Mouth, string> = {
+const MOUTH_LABELS: Record<string, string> = {
   neutral: 'Ровный',
   smile: 'Улыбка',
   grin: 'Улыбка с зубами',
@@ -63,7 +63,7 @@ const blink = useBlink();
         Глаза
         <select v-model="face.eyes" class="bg-neutral-700">
           <option v-for="eyes in EYES" :key="eyes" :value="eyes">
-            {{ EYE_LABELS[eyes] }}
+            {{ EYE_LABELS[eyes] ?? eyes }}
           </option>
         </select>
       </label>
@@ -71,7 +71,7 @@ const blink = useBlink();
         Брови
         <select v-model="face.brows" class="bg-neutral-700">
           <option v-for="brows in BROWS" :key="brows" :value="brows">
-            {{ BROW_LABELS[brows] }}
+            {{ BROW_LABELS[brows] ?? brows }}
           </option>
         </select>
       </label>
@@ -79,7 +79,7 @@ const blink = useBlink();
         Рот
         <select v-model="face.mouth" class="bg-neutral-700">
           <option v-for="mouth in MOUTHS" :key="mouth" :value="mouth">
-            {{ MOUTH_LABELS[mouth] }}
+            {{ MOUTH_LABELS[mouth] ?? mouth }}
           </option>
         </select>
       </label>

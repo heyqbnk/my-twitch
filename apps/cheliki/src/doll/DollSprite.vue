@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef, watchEffect } from 'vue';
-import { loadBody, withFace, type BlinkState, type Face } from './face';
+import { loadBody, loadStamps, withFace, type BlinkState, type Face } from './face';
 import { SPRITE_SIZE, type Frame } from './paperDoll';
 
 /**
@@ -22,12 +22,12 @@ watchEffect(async () => {
   const { frame, blink } = props;
   const face: Face = { eyes: props.face.eyes, brows: props.face.brows, mouth: props.face.mouth };
   const request = ++drawn;
-  const body = await loadBody(frame);
+  const [body, stamps] = await Promise.all([loadBody(frame), loadStamps()]);
   // A newer frame may have been asked for while this one loaded
   if (request !== drawn || !canvas.value) return;
   canvas.value.width = frame.width;
   canvas.value.height = frame.height;
-  canvas.value.getContext('2d')!.putImageData(withFace(body, frame, face, blink), 0, 0);
+  canvas.value.getContext('2d')!.putImageData(withFace(body, frame, stamps, face, blink), 0, 0);
 });
 </script>
 

@@ -4,32 +4,45 @@ Prepare the 128px paper doll in `public/characters/paper-doll-128/` for the app.
 per asset change, not at build time.
 
 ```sh
-pip install -r requirements.txt   # Pillow
-export ASEPRITE="D:/SteamLibrary/steamapps/common/Aseprite/Aseprite.exe"   # for aseprite_sync.py
+pnpm --filter cheliki doll <command>
 ```
+
+Commands that need Aseprite find a Steam or standalone install on Windows, or `aseprite` on PATH;
+`ASEPRITE=<path to the executable>` overrides it.
 
 ## What the app reads
 
 - `Idle/animations/<animation>/<direction>/frame_NNN.png`: body frames without eyes, brows and
   mouth (the nose stays).
 - `src/doll/face-anchors.json`: per body frame, where the eyes and the mouth go.
-- `src/doll/face-stamps.json`: the face stamps, from `stamps.py` (`python export_stamps.py`).
+- `src/doll/face/<eyes|brows|mouths>/<name>.png`: the face parts, exported from `base.aseprite`.
+  How they are cut into stamps and drawn is in `src/doll/stamps.ts`.
 
-## Scripts
+## base.aseprite
 
-| Script | Does |
+- Body animations: one tag per animation direction on the "animations" layer, with the "anchors"
+  layer (a magenta pixel per eye, a cyan one on the mouth) and a locked "face preview".
+- Face parts: the "facial-features" tag holds the tags `eyes`, `brows` and `mouths`, two frames
+  each: front over the south rotation, profile over the east one (the "animations" cels there are
+  a reference, `frames` doesn't read them). Every part is a layer in the "facial-features" layer
+  group, under its kind's group: `facial-features/eyes/open` is drawn on the `eyes` frames. Both
+  front eyes are drawn; west profiles mirror east. A new part is a new layer in its kind's group.
+  Eyes don't blink yet.
+
+## Commands
+
+| Command | Does |
 | --- | --- |
-| `stamps.py` | Eyes, blink states, brows and mouths; how profiles derive from the front; drawing a face by anchors. |
-| `export_stamps.py` | `stamps.py` → `face-stamps.json`. Run after any stamp change. |
-| `sheets.py` | Review sheets in `head/`: concepts, blink, mouths, profile, anchors preview. |
-| `aseprite_sync.py frames` | Body frames retouched in `base.aseprite` → `Idle/`. |
-| `aseprite_sync.py anchors` | Anchor marks moved in `base.aseprite` → `face-anchors.json`, then rebuilds the helper layers and the anchors preview. |
-| `aseprite_sync.py profile-eye new/read <eye>` | Draw a profile eye by hand in `head/stamps/<eye>-profile.aseprite`. |
-| `breathing.py` | `breathing-idle` from the south rotation. |
-| `pixellab_gifs.py <dir>` | Body animations as GIFs for saving back to PixelLab. |
-| `clean_faces.py <src> <dst>` | Erases the faces PixelLab draws into body frames. |
-| `face_anchors.py <src> --force` | Finds the anchors on frames that still have their faces. Overwrites the hand-fixed ones. |
+| `face` | Face parts of `base.aseprite` → `src/doll/face/`. Also runs inside Aseprite: `aseprite/export_face.lua`. |
+| `frames` | Body frames retouched in `base.aseprite` → `Idle/`. |
+| `anchors` | Anchor marks moved in `base.aseprite` → `face-anchors.json`, then `layers`. |
+| `layers` | Rebuilds the "face preview" and "anchors" layers of `base.aseprite`. |
+| `breathing` | `breathing-idle` from the south rotation. |
+| `pixellab-gifs <dir>` | Body animations as GIFs for saving back to PixelLab. |
 
-The current body frames came from the PixelLab originals (commit `09663a2`) via `clean_faces.py`
-and `face_anchors.py`, then were retouched in `base.aseprite`. A new body type or animation goes
-the same way: generate → `clean_faces.py` → `face_anchors.py` → fix both in Aseprite.
+`aseprite/face_preview.lua` runs inside Aseprite on `base.aseprite` (File > Scripts): it redraws
+"face preview" from the "anchors" layer and the part layers as you edit them, with any face. It
+writes nothing to `face-anchors.json` or `src/doll/face/`; `anchors` and `face` do.
+
+Commands that write a `.aseprite` file (`anchors`, `layers`) overwrite it: save and close it in
+Aseprite first.

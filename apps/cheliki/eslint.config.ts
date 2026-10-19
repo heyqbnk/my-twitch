@@ -162,7 +162,7 @@ export default defineConfigWithVueTs(
 
   {
     name: 'cheliki/node-scripts',
-    files: ['scripts/**/*.{js,mjs}', 'vite.config.ts', 'eslint.config.ts'],
+    files: ['scripts/**/*.{js,mjs,ts}', 'vite.config.ts', 'eslint.config.ts'],
     languageOptions: {
       globals: globals.node,
     },
