@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onScopeDispose, reactive, ref } from 'vue';
+import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
 import DollSprite from '../doll/DollSprite.vue';
 import { BROWS, EYES, loadBody, MOUTHS, type Face } from '../doll/face';
 import { FRAMES, SPRITE_SIZE } from '../doll/paperDoll';
@@ -7,7 +7,7 @@ import { useBlink } from '../doll/useBlink';
 import { useHeldDirection } from './useHeldDirection';
 import { useWalker } from './useWalker';
 
-const SCALE = 2;
+const SCALES = [1, 2, 3, 4];
 
 // Parts without a label (new layers in base.aseprite) show their name
 const EYE_LABELS: Record<string, string> = {
@@ -45,11 +45,19 @@ function onResize() {
 window.addEventListener('resize', onResize);
 onScopeDispose(() => window.removeEventListener('resize', onResize));
 
+const scale = ref(1);
+
 /** Walkable width in sprite px. */
-const width = computed(() => Math.floor(viewportWidth.value / SCALE));
+const width = computed(() => Math.floor(viewportWidth.value / scale.value));
 const direction = useHeldDirection();
 const { x, frame } = useWalker(direction, width);
 x.value = Math.floor((width.value - SPRITE_SIZE) / 2);
+
+// Keeps the doll at the same spot on screen, within the new walkable width
+watch(scale, (next, prev) => {
+  const maxX = Math.max(0, width.value - SPRITE_SIZE);
+  x.value = Math.min(maxX, Math.round(x.value * prev / next));
+});
 
 const face = reactive<Face>({ eyes: 'open', brows: 'thin', mouth: 'smile' });
 const blink = useBlink();
@@ -59,6 +67,12 @@ const blink = useBlink();
   <div class="relative h-dvh overflow-hidden bg-neutral-800 text-neutral-400">
     <div class="flex items-center gap-4 p-4">
       <p>← → или A D — идти</p>
+      <label class="flex items-center gap-2">
+        Масштаб
+        <select v-model="scale" class="bg-neutral-700">
+          <option v-for="value in SCALES" :key="value" :value="value">×{{ value }}</option>
+        </select>
+      </label>
       <label class="flex items-center gap-2">
         Глаза
         <select v-model="face.eyes" class="bg-neutral-700">
@@ -85,8 +99,8 @@ const blink = useBlink();
       </label>
     </div>
     <!-- Whole sprite px only, so the pixel art stays sharp -->
-    <div class="absolute bottom-0 left-0" :style="{ translate: `${x * SCALE}px 0` }">
-      <DollSprite :frame="frame" :face="face" :blink="blink" :scale="SCALE" />
+    <div class="absolute bottom-0 left-0" :style="{ translate: `${x * scale}px 0` }">
+      <DollSprite :frame="frame" :face="face" :blink="blink" :scale="scale" />
     </div>
   </div>
 </template>
