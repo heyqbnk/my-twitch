@@ -8,7 +8,6 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint . && stylelint \"**/*.{css,vue}\"",
-    "doll": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/doll/index.ts",
     "lint:fix": "eslint . --fix && stylelint \"**/*.{css,vue}\" --fix"
   },
   "dependencies": {
@@ -20,8 +19,6 @@
     "@stylistic/stylelint-config": "^5.0.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
-    "@types/omggif": "^1.0.5",
-    "@types/pngjs": "^6.0.5",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/tsconfig": "^0.9.1",
@@ -29,8 +26,6 @@
     "eslint-plugin-vue": "^10.11.1",
     "globals": "^17.13.0",
     "jiti": "^2.7.0",
-    "omggif": "^1.0.10",
-    "pngjs": "^7.0.0",
     "postcss-html": "^2.0.0",
     "stylelint": "^17.16.0",
     "stylelint-config-recommended-scss": "^17.0.1",

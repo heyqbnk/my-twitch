@@ -1,49 +1,64 @@
 <script setup lang="ts">
 import { useTemplateRef, watchEffect } from 'vue';
-import { loadBody, loadStamps, withFace, type BlinkState, type Face } from './face';
-import { SPRITE_SIZE, type Frame } from './paperDoll';
+import { frameLayers, loadImage, type Doll, type Frame, type Look } from './paperDoll';
 
 /**
- * One frame of the doll with its face, scaled up with sharp pixels. The element is the sprite box
- * (SPRITE_SIZE * scale); the frame canvas around it overflows it.
+ * One frame of the doll with its look, scaled up with sharp pixels. The element is the sprite box
+ * (doll.size * scale); a taller frame canvas overflows it upwards.
  */
 const props = withDefaults(defineProps<{
+  doll: Doll;
   frame: Frame;
-  face: Face;
-  blink?: BlinkState;
+  look: Look;
   scale?: number;
-}>(), { blink: 0, scale: 2 });
+}>(), { scale: 2 });
 
 const canvas = useTemplateRef('canvas');
+// Scratch canvas for tinting one layer
+const tint = document.createElement('canvas').getContext('2d')!;
+
+/** Multiplies the grey image by the colour, keeping its alpha. */
+function tinted(image: HTMLImageElement, color: string) {
+  tint.canvas.width = image.width;
+  tint.canvas.height = image.height;
+  tint.drawImage(image, 0, 0);
+  tint.globalCompositeOperation = 'multiply';
+  tint.fillStyle = color;
+  tint.fillRect(0, 0, image.width, image.height);
+  tint.globalCompositeOperation = 'destination-in';
+  tint.drawImage(image, 0, 0);
+  tint.globalCompositeOperation = 'source-over';
+  return tint.canvas;
+}
 
 let drawn = 0;
 watchEffect(async () => {
   // Read before the await, so the effect tracks them
-  const { frame, blink } = props;
-  const face: Face = { eyes: props.face.eyes, brows: props.face.brows, mouth: props.face.mouth };
+  const { doll, frame } = props;
+  const layers = frameLayers(doll, frame, { ...props.look });
   const request = ++drawn;
-  const [body, stamps] = await Promise.all([loadBody(frame), loadStamps()]);
+  const images = await Promise.all(layers.map(layer => loadImage(layer.url)));
   // A newer frame may have been asked for while this one loaded
   if (request !== drawn || !canvas.value) return;
-  canvas.value.width = frame.width;
+  canvas.value.width = doll.size;
   canvas.value.height = frame.height;
-  canvas.value.getContext('2d')!.putImageData(withFace(body, frame, stamps, face, blink), 0, 0);
+  const context = canvas.value.getContext('2d')!;
+  images.forEach((image, i) => {
+    const color = layers[i]!.color;
+    context.drawImage(color ? tinted(image, color) : image, 0, 0);
+  });
 });
 </script>
 
 <template>
   <div
     class="relative"
-    :style="{ width: `${SPRITE_SIZE * scale}px`, height: `${SPRITE_SIZE * scale}px` }"
+    :style="{ width: `${doll.size * scale}px`, height: `${doll.size * scale}px` }"
   >
     <canvas
       ref="canvas"
-      :class="cn.frame"
-      :style="{
-        left: `${-frame.boxX * scale}px`,
-        top: `${-frame.boxY * scale}px`,
-        width: `${frame.width * scale}px`,
-      }"
+      :class="[cn.frame, frame.mirrored && cn.frameMirrored]"
+      :style="{ top: `${-frame.boxY * scale}px`, width: `${doll.size * scale}px` }"
     />
   </div>
 </template>
@@ -51,6 +66,11 @@ watchEffect(async () => {
 <style module="cn">
 .frame {
   position: absolute;
+  left: 0;
   image-rendering: pixelated;
+}
+
+.frameMirrored {
+  scale: -1 1;
 }
 </style>

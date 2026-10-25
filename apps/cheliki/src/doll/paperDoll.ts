@@ -1,74 +1,117 @@
-const CHARACTER_URL = '/characters/paper-doll-128';
-
-export const FPS = 10;
-/**
- * The sprite box, in sprite px: every frame was drawn around a 128px rotation. Animation canvases
- * are bigger (v3 grows them), so each frame knows where that box sits on its canvas; drawing
- * frames by the box keeps the feet in place across animations.
- */
-export const SPRITE_SIZE = 128;
+/** How long each animation frame is shown, in ms. */
+export const FRAME_MS = 60;
 
 export type Direction = 'west' | 'east';
-export type Facing = Direction | 'south';
 
 export interface Frame {
-  /** Path inside Idle/, the key of the frame in face-anchors.json. */
+  /** Path inside an animation folder, e.g. `walk-loop/east/frame_000.png`. */
   src: string;
-  facing: Facing;
-  width: number;
+  /** Frames of the direction that isn't drawn are the drawn ones mirrored. */
+  mirrored: boolean;
   height: number;
   /** Where the sprite box sits on the frame canvas. */
-  boxX: number;
   boxY: number;
 }
 
-export const bodyUrl = (frame: Frame) => `${CHARACTER_URL}/Idle/${frame.src}`;
-
-/**
- * Names follow the PixelLab export: frame_000..frame_00N. PixelLab centers the box horizontally
- * and puts it 16px below the top of a taller canvas.
- */
-function animation(
-  name: string,
-  facing: Facing,
-  count: number,
-  [width, height]: [number, number],
-): Frame[] {
-  return Array.from({ length: count }, (_, i) => ({
-    src: `animations/${name}/${facing}/frame_${String(i).padStart(3, '0')}.png`,
-    facing,
-    width,
-    height,
-    boxX: (width - SPRITE_SIZE) / 2,
-    boxY: height > SPRITE_SIZE ? 16 : 0,
-  }));
+/** A layer drawn over the body: one image per body frame in `<folder>/<name>/`. */
+export interface Slot {
+  key: string;
+  label: string;
+  folder: string;
+  names: string[];
+  /** The images are grey, multiplied by the part's colour. */
+  tinted?: boolean;
+  /** Colours that look natural on the part; random looks pick from them. */
+  palette?: string[];
 }
 
-const perDirection = (name: string, count: number, size: [number, number]) => ({
-  west: animation(name, 'west', count, size),
-  east: animation(name, 'east', count, size),
-});
+export interface Part {
+  name: string;
+  /** For tinted slots; without it the grey image is drawn as is. */
+  color?: string;
+}
 
-/** Standing still facing the viewer; the chest rises, the head moves with it. */
-const BREATHING = animation('breathing-idle', 'south', 4, [128, 128]);
-/** Ticks each breathing frame is held: 400 / 300 / 400 / 300 ms. */
-const BREATHING_TICKS = [4, 3, 4, 3];
-export const IDLE = BREATHING.flatMap((frame, i) => (
-  Array.from({ length: BREATHING_TICKS[i]! }, () => frame)
-));
+/** A part per slot key, or null to draw the doll without it. */
+export type Look = Record<string, Part | null>;
 
-/** Turns from facing the viewer and steps off; its last frame repeats WALK[0]. */
-export const SOUTH_TURN_WALK = perDirection('south-turn-walk', 8, [160, 160]);
-export const WALK = perDirection('walk-loop', 8, [160, 160]);
-/** Slows down from the walk and ends facing the viewer; the last frame repeats IDLE[0]. */
-export const STOP_TURN_SOUTH = perDirection('stop-turn-south', 8, [128, 160]);
+export interface Doll {
+  url: string;
+  /**
+   * The sprite box, in sprite px. Animation canvases may be taller, so each frame knows where the
+   * box sits on its canvas; drawing frames by the box keeps the feet in place across animations.
+   * Canvases are as wide as the box.
+   */
+  size: number;
+  /** How far one walk frame moves the doll, in sprite px. */
+  walkStep: number;
+  /** Turns from facing the viewer and steps off. */
+  start: Record<Direction, Frame[]>;
+  walk: Record<Direction, Frame[]>;
+  /** The walk frame that follows the last start frame. */
+  walkAfterStart: number;
+  /** Slows down from the walk and ends facing the viewer, in the idle pose. */
+  stop: Record<Direction, Frame[]>;
+  /** No breathing yet: stands in the pose the stop ends with. */
+  idle: Frame;
+  /** Bottom to top. */
+  slots: Slot[];
+  defaultLook: Look;
+}
 
-/** Every frame the doll is drawn with. */
-export const FRAMES: Frame[] = [
-  ...BREATHING,
-  ...(['west', 'east'] as const).flatMap(d => [
-    ...SOUTH_TURN_WALK[d],
-    ...WALK[d],
-    ...STOP_TURN_SOUTH[d],
-  ]),
-];
+/** Names follow the PixelLab export: frame_000..frame_00N. */
+export function animation(
+  name: string,
+  drawn: Direction,
+  count: number,
+  height: number,
+  boxY: number,
+): Record<Direction, Frame[]> {
+  const frames = Array.from({ length: count }, (_, i) => ({
+    src: `${name}/${drawn}/frame_${String(i).padStart(3, '0')}.png`,
+    mirrored: false,
+    height,
+    boxY,
+  }));
+  const mirrored = frames.map(frame => ({ ...frame, mirrored: true }));
+  return drawn === 'east' ? { east: frames, west: mirrored } : { east: mirrored, west: frames };
+}
+
+export interface Layer {
+  url: string;
+  color?: string;
+}
+
+/** Images of the frame, bottom to top: the body, then the slots. */
+export function frameLayers(doll: Doll, frame: Frame, look: Look): Layer[] {
+  const parts = doll.slots.flatMap(slot => {
+    const part = look[slot.key];
+    if (!part) return [];
+    return [{ url: `${doll.url}/${slot.folder}/${part.name}/${frame.src}`, color: slot.tinted ? part.color : undefined }];
+  });
+  return [{ url: `${doll.url}/Idle/animations/${frame.src}` }, ...parts];
+}
+
+const images = new Map<string, Promise<HTMLImageElement>>();
+
+export function loadImage(url: string): Promise<HTMLImageElement> {
+  let image = images.get(url);
+  if (!image) {
+    const img = new Image();
+    img.src = url;
+    image = img.decode().then(() => img);
+    images.set(url, image);
+  }
+  return image;
+}
+
+/** Loads every frame with every part, so walking never waits for the network. */
+export function preload(doll: Doll) {
+  // West and east frames are the same images
+  const frames = [...doll.start.east, ...doll.walk.east, ...doll.stop.east];
+  for (const frame of frames) {
+    void loadImage(`${doll.url}/Idle/animations/${frame.src}`);
+    for (const slot of doll.slots) {
+      for (const name of slot.names) void loadImage(`${doll.url}/${slot.folder}/${name}/${frame.src}`);
+    }
+  }
+}

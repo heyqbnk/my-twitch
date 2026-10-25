@@ -6,7 +6,8 @@ import { globalIgnores } from 'eslint/config';
 import globals from 'globals';
 
 export default defineConfigWithVueTs(
-  globalIgnores(['dist/**', 'node_modules/**']),
+  // walkerSprite.ts генерируется scripts/generate-walker.mjs
+  globalIgnores(['dist/**', 'node_modules/**', 'src/scene/walkerSprite.ts']),
 
   {
     name: 'cheliki/files-to-lint',
@@ -162,7 +163,7 @@ export default defineConfigWithVueTs(
 
   {
     name: 'cheliki/node-scripts',
-    files: ['scripts/**/*.{js,mjs,ts}', 'vite.config.ts', 'eslint.config.ts'],
+    files: ['scripts/**/*.{js,mjs}', 'vite.config.ts', 'eslint.config.ts'],
     languageOptions: {
       globals: globals.node,
     },
