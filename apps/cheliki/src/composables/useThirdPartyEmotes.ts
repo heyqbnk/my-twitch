@@ -3,8 +3,10 @@ import * as bttv from '../twitch/bttv';
 import type { Emote, EmoteMap } from '../twitch/emotes';
 import * as seventv from '../twitch/seventv';
 
-// Эмодзи BTTV и 7TV по room-id канала. При совпадении названий побеждает
-// более поздний источник в списке: канальные важнее глобальных, 7TV важнее BTTV.
+/**
+ * Эмодзи BTTV и 7TV по room-id канала. При совпадении названий побеждает
+ * более поздний источник в списке: канальные важнее глобальных, 7TV важнее BTTV.
+ */
 export function useThirdPartyEmotes(roomId: Ref<string | null>) {
   const emotes = shallowRef<EmoteMap>(new Map());
   let controller: AbortController | null = null;

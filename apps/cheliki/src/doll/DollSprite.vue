@@ -14,7 +14,9 @@ const props = withDefaults(defineProps<{
 }>(), { scale: 2 });
 
 const canvas = useTemplateRef('canvas');
-// Scratch canvas for tinting one layer
+/**
+ * Scratch canvas for tinting one layer
+ */
 const tint = document.createElement('canvas').getContext('2d')!;
 
 /** Multiplies the grey image by the colour, keeping its alpha. */

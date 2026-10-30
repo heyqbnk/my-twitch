@@ -4,10 +4,10 @@ import MessageText from '../components/MessageText.vue';
 import type { SceneActor } from '../composables/useSceneActors';
 import { shownAt } from '../composables/useTwitchChat';
 import DollSprite from '../doll/DollSprite.vue';
-import type { Doll } from '../doll/paperDoll';
+import type { Doll, Look } from '../doll/paperDoll';
 import { useWanderer } from '../doll/useWanderer';
 import { HIGHLIGHTED_PRIORITY, TALKING_PRIORITY } from '../scene/actorPriority';
-import { dollLook } from './dollLook';
+import { dollLook, lookSeed } from './dollLook';
 
 /** How long the message bubble is shown, in ms. */
 const BUBBLE_MS = 6000;
@@ -18,10 +18,12 @@ const props = defineProps<{
   /** Walkable width in sprite px. */
   width: number;
   scale: number;
+  /** Overrides the look picked for the chatter. */
+  look?: Look;
 }>();
 
 const { x, frame } = useWanderer(props.doll, toRef(props, 'width'));
-const look = computed(() => dollLook(props.doll, props.actor));
+const look = computed(() => props.look ?? dollLook(props.doll, lookSeed(props.actor)));
 
 const talking = ref(false);
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -38,7 +40,9 @@ watch(
 );
 onScopeDispose(() => clearTimeout(timer));
 
-// The talking doll is over the silent ones, the highlighted message over any other
+/**
+ * The talking doll is over the silent ones, the highlighted message over any other
+ */
 const zIndex = computed(() => {
   if (!talking.value) return props.actor.priority;
   const bonus = props.actor.lastMessage.highlighted ? HIGHLIGHTED_PRIORITY : TALKING_PRIORITY;
@@ -48,7 +52,15 @@ const zIndex = computed(() => {
 
 <template>
   <!-- Whole sprite px only, so the pixel art stays sharp -->
-  <div class="absolute bottom-0 left-0" :style="{ translate: `${x * scale}px 0`, zIndex }">
+  <!-- The soles stand on the bottom of the stage, the empty rows under them overlap the ground -->
+  <div
+    class="absolute left-0"
+    :style="{
+      bottom: `${(doll.soles - doll.size) * scale}px`,
+      translate: `${x * scale}px 0`,
+      zIndex,
+    }"
+  >
     <div :class="cn.above">
       <div
         v-if="talking"

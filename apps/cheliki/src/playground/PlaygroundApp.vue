@@ -1,34 +1,52 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import ChatScene from '../components/ChatScene.vue';
 import MessageText from '../components/MessageText.vue';
-import RoleBadge from '../components/RoleBadge.vue';
-import { DEFAULT_SCALE } from '../composables/useChannelQuery';
+import SceneGround from '../components/SceneGround.vue';
+import { DEFAULT_GROUND, DEFAULT_SCALE } from '../composables/useChannelQuery';
 import { provideMentionColor } from '../composables/useMentionColor';
 import { provideMessageParts } from '../composables/useMessageParts';
-import { useSceneActors } from '../composables/useSceneActors';
+import { useSceneActors, type SceneActor } from '../composables/useSceneActors';
 import { useThirdPartyEmotes } from '../composables/useThirdPartyEmotes';
+import ChatDoll from '../doll-chat/ChatDoll.vue';
+import { preload, type Doll } from '../doll/paperDoll';
+import { useViewportWidth } from '../doll/useViewportWidth';
 import { actorColor } from '../scene/actorStyle';
 import type { ChatRole } from '../twitch/badges';
 import { fetchUserId } from '../twitch/ivr';
+import controls from './controls.module.css';
 import LookEditor from './LookEditor.vue';
-import { randomDude, randomMessage, usePlayground, withLooks } from './usePlayground';
+import PlaygroundCard from './PlaygroundCard.vue';
+import { randomDude, randomMessage, usePlayground, withNickColor } from './usePlayground';
 
-const SETTINGS_KEY = 'cheliki-playground:settings:v1';
-// Задержка между сообщениями «все говорят», чтобы облачка появлялись по очереди
+const props = defineProps<{ doll: Doll }>();
+
+const SETTINGS_KEY = 'cheliki-playground:settings:v2';
+/** Pause between the messages of «Все говорят», so the bubbles come one by one. */
 const CHORUS_STEP_MS = 300;
+const CROWD_SIZE = 10;
+
+preload(props.doll);
 
 interface Settings {
   scale: number;
-  // Минуты на сцене после последнего сообщения, null — без ограничения
+  /** Scene px. */
+  ground: number;
+  /** Minutes on the scene after the last message, null — no limit, like ?stay=. */
   stay: number | null;
+  /** Seconds, like ?msg_delay=. */
+  delay: number;
   background: string;
   emoteChannel: string;
 }
 
 function loadSettings(): Settings {
   const defaults: Settings = {
-    scale: DEFAULT_SCALE, stay: null, background: '#1f2028', emoteChannel: '',
+    scale: DEFAULT_SCALE,
+    ground: DEFAULT_GROUND,
+    stay: null,
+    delay: 0,
+    background: '#5c94fc',
+    emoteChannel: '',
   };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
@@ -42,16 +60,18 @@ watch(settings, value => {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(value));
   } catch {
-    // хранилище недоступно — настройки не запомнятся
+    // No storage: the settings just won't be remembered
   }
 }, { deep: true });
 
 const {
-  dudes, messages, followDates, lastMessageOf,
+  dudes, messages, queued, followDates, lastMessageOf,
   send, deleteMessage, timeout, clearChat, addDude, removeDude, renameDude,
-} = usePlayground();
+} = usePlayground(props.doll, computed(() => settings.value.delay * 1000));
 
-// Эмодзи 7TV и BTTV — с настоящего канала, как на его сцене
+/**
+ * 7TV and BTTV emotes of a real channel, as on its scene
+ */
 const roomId = ref<string | null>(null);
 const emoteStatus = ref('');
 async function loadEmotes() {
@@ -66,16 +86,29 @@ async function loadEmotes() {
     emoteStatus.value = 'Не удалось узнать ID канала';
   }
 }
-loadEmotes();
+void loadEmotes();
 provideMessageParts(useThirdPartyEmotes(roomId));
 provideMentionColor(messages);
 
 const stay = computed(() => (settings.value.stay ? settings.value.stay * 60_000 : null));
-const actors = withLooks(useSceneActors(messages, stay, followDates), dudes);
+const actors = useSceneActors(messages, stay, followDates);
+/**
+ * No exit animation yet: a chatter who said goodbye just disappears
+ */
+const shown = computed(() => actors.value.filter(actor => !actor.leaving));
+const onStage = computed(() => new Set(shown.value.map(a => a.login)));
+
+function lookOf(actor: SceneActor) {
+  const look = dudes.value.find(d => d.login === actor.login)?.look;
+  return look ? withNickColor(look, actor.color) : undefined;
+}
+
+const viewportWidth = useViewportWidth();
+/** Walkable width in sprite px. */
+const width = computed(() => Math.floor(viewportWidth.value / settings.value.scale));
 
 const selectedLogin = ref(dudes.value[0]?.login ?? null);
 const selected = computed(() => dudes.value.find(d => d.login === selectedLogin.value) ?? null);
-const onStage = computed(() => new Set(actors.value.filter(a => !a.leaving).map(a => a.login)));
 
 function add(bot = false) {
   const dude = addDude({ ...randomDude(), bot });
@@ -95,7 +128,9 @@ function rename(event: Event) {
   else input.value = dude.login;
 }
 
-// Сообщение
+/**
+ * The message being written
+ */
 const text = ref('');
 const highlighted = ref(false);
 const firstMessage = ref(false);
@@ -119,10 +154,15 @@ function mention(login: string) {
   text.value = `${text.value.trimEnd()} @${name} `.trimStart();
 }
 
-function chorus() {
-  dudes.value.forEach((dude, i) => {
-    setTimeout(() => send(dude.login, randomMessage()), i * CHORUS_STEP_MS);
+function chorus(logins = dudes.value.map(d => d.login)) {
+  logins.forEach((login, i) => {
+    setTimeout(() => send(login, randomMessage()), i * CHORUS_STEP_MS);
   });
+}
+
+/** New viewers, each says something, so they come on the scene. */
+function crowd() {
+  chorus(Array.from({ length: CROWD_SIZE }, () => addDude(randomDude()).login));
 }
 
 function deleteLast() {
@@ -137,89 +177,139 @@ const ROLES: { value: ChatRole | undefined; label: string }[] = [
   { value: 'moderator', label: 'модератор' },
   { value: 'broadcaster', label: 'владелец' },
 ];
+const ROLE_ICONS: Record<ChatRole, string> = { broadcaster: '👑', moderator: '⚔️', vip: '💎' };
+
+const log = computed(() => [
+  ...queued.value.map(message => ({ message, queued: true })),
+  ...messages.value.map(message => ({ message, queued: false })).reverse(),
+]);
 
 const value = (event: Event) => (event.target as HTMLInputElement).value;
 const optionalNumber = (raw: string) => (raw.trim() === '' ? null : Math.max(0, Number(raw)));
 </script>
 
 <template>
-  <div class="pg">
-    <ChatScene
-      class="pg__scene"
+  <div class="flex h-dvh flex-col bg-neutral-900 text-sm text-neutral-300">
+    <div
+      class="flex min-h-50 flex-1 flex-col overflow-hidden"
       :style="{ background: settings.background }"
-      :actors="actors"
-      :scale="settings.scale"
-    />
+    >
+      <div class="relative flex-1">
+        <ChatDoll
+          v-for="actor in shown"
+          :key="actor.login"
+          :doll="doll"
+          :actor="actor"
+          :look="lookOf(actor)"
+          :width="width"
+          :scale="settings.scale"
+        />
+      </div>
+      <SceneGround :scale="settings.scale" :height="settings.ground" />
+    </div>
 
-    <div class="pg__panel">
-      <section class="pg__card">
-        <h2>Зрители</h2>
-        <ul class="pg__dudes">
+    <div class="flex h-[45vh] shrink-0 gap-3 overflow-x-auto p-3">
+      <PlaygroundCard title="Зрители">
+        <ul class="flex flex-col gap-0.5">
           <li
             v-for="dude in dudes"
             :key="dude.login"
-            class="pg__dude"
-            :class="{ 'pg__dude--selected': dude.login === selectedLogin }"
+            :class="[cn.dude, dude.login === selectedLogin && cn.dudeSelected]"
             @click="selectedLogin = dude.login"
           >
-            <span class="pg__swatch" :style="{ background: actorColor(dude) }" />
-            <RoleBadge v-if="dude.role" :role="dude.role" :size="14" />
-            <span class="pg__dude-name">{{ dude.bot ? '🤖 ' : '' }}{{ dude.name }}</span>
-            <span v-if="onStage.has(dude.login)" class="pg__on-stage" title="На сцене">●</span>
-            <button type="button" title="Упомянуть" @click.stop="mention(dude.login)">@</button>
-            <button type="button" title="Удалить зрителя" @click.stop="remove(dude.login)">
+            <span class="size-3 shrink-0 rounded-full" :style="{ background: actorColor(dude) }" />
+            <span v-if="dude.role" :title="dude.role">{{ ROLE_ICONS[dude.role] }}</span>
+            <span v-if="dude.bot" title="бот">🤖</span>
+            <span class="flex-1 truncate">{{ dude.name }}</span>
+            <span
+              v-if="onStage.has(dude.login)"
+              class="text-xs text-green-500"
+              title="На сцене"
+            >●</span>
+            <button
+              type="button"
+              :class="controls.button"
+              title="Упомянуть"
+              @click.stop="mention(dude.login)"
+            >
+              @
+            </button>
+            <button
+              type="button"
+              :class="controls.button"
+              title="Удалить зрителя"
+              @click.stop="remove(dude.login)"
+            >
               ✕
             </button>
           </li>
         </ul>
-        <div class="pg__buttons">
-          <button type="button" @click="add()">+ Зритель</button>
-          <button type="button" @click="add(true)">+ Бот</button>
-          <button type="button" @click="chorus">Все говорят</button>
+        <div class="flex flex-wrap gap-1.5">
+          <button type="button" :class="controls.button" @click="add()">+ Зритель</button>
+          <button type="button" :class="controls.button" @click="add(true)">+ Бот</button>
+          <button type="button" :class="controls.button" @click="chorus()">Все говорят</button>
+          <button
+            type="button"
+            :class="controls.button"
+            @click="crowd"
+          >
+            +{{ CROWD_SIZE }} с сообщением
+          </button>
         </div>
-      </section>
+      </PlaygroundCard>
 
-      <section v-if="selected" :key="selected.login" class="pg__card">
-        <h2>Профиль</h2>
-        <label class="pg__field">
+      <PlaygroundCard v-if="selected" :key="selected.login" title="Профиль">
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
           <span>Логин</span>
-          <input :value="selected.login" @change="rename" />
+          <input :class="controls.input" :value="selected.login" @change="rename" />
         </label>
-        <label class="pg__field">
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
           <span>Ник</span>
-          <input v-model.trim="selected.name" />
+          <input v-model.trim="selected.name" :class="controls.input" />
         </label>
-        <label class="pg__field">
+        <div class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
           <span>Цвет ника</span>
-          <span class="pg__inline">
+          <span class="flex items-center gap-1.5">
             <input
               type="color"
+              :class="controls.color"
               :disabled="selected.color === null"
               :value="selected.color ?? '#000000'"
               @input="selected.color = value($event)"
             />
-            <label><input
-              type="checkbox"
-              :checked="selected.color === null"
-              @change="selected.color = selected.color === null ? '#1e90ff' : null"
-            /> не выбран</label>
+            <label class="flex items-center gap-1">
+              <input
+                type="checkbox"
+                :checked="selected.color === null"
+                @change="selected.color = selected.color === null ? '#1e90ff' : null"
+              />
+              не выбран
+            </label>
           </span>
-        </label>
-        <label class="pg__field">
+        </div>
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
           <span>Роль</span>
-          <select v-model="selected.role">
-            <option v-for="role in ROLES" :key="role.label" :value="role.value">
-              {{ role.label }}
-            </option>
+          <select v-model="selected.role" :class="controls.input">
+            <option
+              v-for="role in ROLES"
+              :key="role.label"
+              :value="role.value"
+            >{{ role.label }}</option>
           </select>
         </label>
-        <label class="pg__field">
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
           <span>Подписка, мес.</span>
-          <input v-model.number="selected.subMonths" type="number" min="0" />
+          <input
+            v-model.number="selected.subMonths"
+            :class="controls.input"
+            type="number"
+            min="0"
+          >
         </label>
-        <label class="pg__field">
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
           <span>Фолловит, дней</span>
           <input
+            :class="controls.input"
             type="number"
             min="0"
             placeholder="не фолловер"
@@ -227,33 +317,39 @@ const optionalNumber = (raw: string) => (raw.trim() === '' ? null : Math.max(0, 
             @change="selected.followDays = optionalNumber(value($event))"
           />
         </label>
-        <label class="pg__field">
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
           <span>Бот</span>
-          <input v-model="selected.bot" type="checkbox" />
+          <input v-model="selected.bot" type="checkbox" class="justify-self-start" />
         </label>
-        <p class="pg__note">
-          Ник, роль и подписка применяются со следующего сообщения — как в настоящем чате.
-          Бот — только у нового человечка на сцене.
+        <p class="text-xs text-neutral-500">
+          Ник, цвет, роль и подписка применяются со следующего сообщения — как в настоящем чате.
+          Кто поверх кого: роль, затем стаж подписки или фоллова.
         </p>
-      </section>
+      </PlaygroundCard>
 
-      <section v-if="selected && !selected.bot" :key="`look-${selected.login}`" class="pg__card">
-        <h2>Внешность</h2>
-        <LookEditor :dude="selected" />
-      </section>
+      <PlaygroundCard v-if="selected" :key="`look-${selected.login}`" title="Внешность">
+        <LookEditor :doll="doll" :dude="selected" />
+      </PlaygroundCard>
 
-      <section v-if="selected" class="pg__card">
-        <h2>Написать от {{ selected.name }}</h2>
-        <form class="pg__composer" @submit.prevent="say()">
-          <input v-model="text" placeholder="Сообщение, @ник для упоминания" autofocus />
-          <button type="submit">Отправить</button>
+      <PlaygroundCard v-if="selected" :title="`Написать от ${selected.name}`">
+        <form class="flex gap-1.5" @submit.prevent="say()">
+          <input
+            v-model="text"
+            :class="[controls.input, controls.inputGrow]"
+            placeholder="Сообщение, @ник для упоминания"
+          >
+          <button type="submit" :class="controls.button">Отправить</button>
         </form>
-        <div class="pg__options">
-          <label><input v-model="highlighted" type="checkbox" /> выделенное</label>
-          <label><input v-model="firstMessage" type="checkbox" /> первое сообщение</label>
-          <label>
+        <div class="flex flex-wrap gap-x-3 gap-y-1">
+          <label class="flex items-center gap-1">
+            <input v-model="highlighted" type="checkbox" /> выделенное
+          </label>
+          <label class="flex items-center gap-1">
+            <input v-model="firstMessage" type="checkbox" /> первое
+          </label>
+          <label class="flex items-center gap-1">
             ответ
-            <select v-model="replyTo">
+            <select v-model="replyTo" :class="controls.input">
               <option :value="null">—</option>
               <option
                 v-for="dude in dudes.filter(d => d.login !== selected!.login)"
@@ -263,28 +359,50 @@ const optionalNumber = (raw: string) => (raw.trim() === '' ? null : Math.max(0, 
             </select>
           </label>
         </div>
-        <div class="pg__buttons">
-          <button type="button" @click="say(randomMessage())">Случайное</button>
-          <button type="button" @click="say('bb')">bb</button>
-          <button type="button" @click="say('!vanish')">!vanish</button>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            :class="controls.button"
+            @click="say(randomMessage())"
+          >
+            Случайное
+          </button>
+          <button type="button" :class="controls.button" @click="say('bb')">bb</button>
+          <button type="button" :class="controls.button" @click="say('!vanish')">!vanish</button>
         </div>
-        <h3>Модерация</h3>
-        <div class="pg__buttons">
-          <button type="button" @click="deleteLast">Удалить последнее</button>
-          <button type="button" @click="timeout(selected.login)">Таймаут</button>
-          <button type="button" @click="clearChat">Очистить чат</button>
+        <h3 class="mt-2 font-semibold text-neutral-400">Модерация</h3>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            :class="controls.button"
+            @click="deleteLast"
+          >
+            Удалить последнее
+          </button>
+          <button
+            type="button"
+            :class="controls.button"
+            @click="timeout(selected.login)"
+          >
+            Таймаут
+          </button>
+          <button type="button" :class="controls.button" @click="clearChat">Очистить чат</button>
         </div>
-      </section>
+      </PlaygroundCard>
 
-      <section class="pg__card">
-        <h2>Сцена</h2>
-        <label class="pg__field">
-          <span>Масштаб: {{ settings.scale }}</span>
+      <PlaygroundCard title="Сцена">
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
+          <span>Масштаб: ×{{ settings.scale }}</span>
           <input v-model.number="settings.scale" type="range" min="1" max="10" />
         </label>
-        <label class="pg__field">
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
+          <span>Пол: {{ settings.ground }}</span>
+          <input v-model.number="settings.ground" type="range" min="0" max="64" />
+        </label>
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
           <span>На сцене, мин</span>
           <input
+            :class="controls.input"
             type="number"
             min="0"
             step="0.1"
@@ -293,186 +411,87 @@ const optionalNumber = (raw: string) => (raw.trim() === '' ? null : Math.max(0, 
             @change="settings.stay = optionalNumber(value($event)) || null"
           />
         </label>
-        <label class="pg__field">
-          <span>Фон</span>
-          <input v-model="settings.background" type="color" />
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
+          <span>Задержка, с</span>
+          <input
+            :class="controls.input"
+            type="number"
+            min="0"
+            step="0.5"
+            :value="settings.delay"
+            @change="settings.delay = optionalNumber(value($event)) ?? 0"
+          />
         </label>
-        <form class="pg__field" @submit.prevent="loadEmotes">
+        <label class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5">
+          <span>Фон</span>
+          <input v-model="settings.background" type="color" :class="controls.color" />
+        </label>
+        <form
+          class="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-1.5"
+          @submit.prevent="loadEmotes"
+        >
           <span>Эмодзи канала</span>
-          <span class="pg__inline">
-            <input v-model.trim="settings.emoteChannel" placeholder="логин" />
-            <button type="submit">Загрузить</button>
+          <span class="flex gap-1.5">
+            <input
+              v-model.trim="settings.emoteChannel"
+              :class="[controls.input, controls.inputGrow]"
+              placeholder="логин"
+            >
+            <button type="submit" :class="controls.button">Загрузить</button>
           </span>
         </form>
-        <p v-if="emoteStatus" class="pg__note">7TV и BTTV: {{ emoteStatus }}</p>
-      </section>
+        <p v-if="emoteStatus" class="text-xs text-neutral-500">7TV и BTTV: {{ emoteStatus }}</p>
+      </PlaygroundCard>
 
-      <section class="pg__card pg__card--log">
-        <h2>Чат</h2>
-        <ul class="pg__log">
-          <li v-if="!messages.length" class="pg__note">Пока тихо</li>
-          <li v-for="msg in [...messages].reverse()" :key="msg.id" class="pg__log-item">
-            <b :style="{ color: actorColor(msg) }">{{ msg.author }}</b>:
-            <MessageText :message="msg" />
-            <button type="button" title="Удалить сообщение" @click="deleteMessage(msg.id)">
+      <PlaygroundCard title="Чат" wide>
+        <ul class="flex flex-col gap-0.5">
+          <li v-if="!log.length" class="text-xs text-neutral-500">Пока тихо</li>
+          <li
+            v-for="{ message, queued: waiting } in log"
+            :key="message.id"
+            :class="[cn.logItem, waiting && cn.logItemQueued]"
+          >
+            <span v-if="waiting" title="Ждёт показа">⏳ </span>
+            <b :style="{ color: actorColor(message) }">{{ message.author }}</b>:
+            <MessageText :message="message" />
+            {{ ' ' }}<button
+              type="button"
+              :class="controls.button"
+              title="Удалить сообщение"
+              @click="deleteMessage(message.id)"
+            >
               ✕
             </button>
           </li>
         </ul>
-      </section>
+      </PlaygroundCard>
     </div>
   </div>
 </template>
 
-<style scoped>
-.pg {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: var(--bg);
-}
-
-.pg__scene {
-  flex: 1;
-  min-height: 200px;
-}
-
-.pg__panel {
-  display: flex;
-  gap: 12px;
-  height: 45vh;
-  padding: 12px;
-  overflow-x: auto;
-  border-top: 1px solid var(--border);
-  font-size: 14px;
-  color: var(--text-h);
-}
-
-.pg__card {
-  display: flex;
-  flex: 0 0 280px;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--code-bg);
-}
-
-.pg__card--log {
-  flex-basis: 360px;
-}
-
-.pg__card h2,
-.pg__card h3 {
-  margin: 0 0 4px;
-  font-size: 1em;
-}
-
-.pg__card h3 {
-  margin-top: 8px;
-  font-size: 0.9em;
-  opacity: 0.8;
-}
-
-.pg__dudes,
-.pg__log {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.pg__dude {
+<style module="cn">
+.dude {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 3px 6px;
   border-radius: 4px;
   cursor: pointer;
+
+  &:hover {
+    background: rgb(64 64 64);
+  }
 }
 
-.pg__dude:hover {
-  background: var(--border);
+.dudeSelected {
+  outline: 2px solid rgb(168 85 247);
 }
 
-.pg__dude--selected {
-  outline: 2px solid var(--accent);
-}
-
-.pg__dude-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pg__swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.pg__on-stage {
-  color: #22c55e;
-  font-size: 0.8em;
-}
-
-.pg__field {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  align-items: center;
-  gap: 6px;
-}
-
-.pg__field input:not([type='checkbox']),
-.pg__field select {
-  min-width: 0;
-}
-
-.pg__inline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pg__inline input:not([type='checkbox'], [type='color']) {
-  flex: 1;
-}
-
-.pg__buttons,
-.pg__options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.pg__composer {
-  display: flex;
-  gap: 6px;
-}
-
-.pg__composer input {
-  flex: 1;
-  min-width: 0;
-}
-
-.pg__note {
-  margin: 0;
-  font-size: 0.8em;
-  opacity: 0.7;
-}
-
-.pg__log-item {
+.logItem {
   overflow-wrap: anywhere;
 }
 
-.pg__log-item button {
-  margin-left: 4px;
-  padding: 0 4px;
-  font-size: 0.75em;
+.logItemQueued {
+  opacity: 0.5;
 }
 </style>

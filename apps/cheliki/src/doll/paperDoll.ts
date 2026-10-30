@@ -16,13 +16,26 @@ export interface Frame {
 /** A layer drawn over the body: one image per body frame in `<folder>/<name>/`. */
 export interface Slot {
   key: string;
-  label: string;
   folder: string;
   names: string[];
   /** The images are grey, multiplied by the part's colour. */
   tinted?: boolean;
   /** Colours that look natural on the part; random looks pick from them. */
   palette?: string[];
+  /**
+   * How many of 100 chatters wear each part; the rest go without the slot. Without it every
+   * chatter wears one of the parts.
+   */
+  shares?: Record<string, number>;
+}
+
+/** The part a roll in 0..99 falls on, or null when it falls past the slot's shares. */
+export function sharedName(slot: Slot, roll: number): string | null {
+  for (const name of slot.names) {
+    roll -= slot.shares?.[name] ?? 0;
+    if (roll < 0) return name;
+  }
+  return null;
 }
 
 export interface Part {
@@ -44,6 +57,8 @@ export interface Doll {
   size: number;
   /** How far one walk frame moves the doll, in sprite px. */
   walkStep: number;
+  /** The row of the sprite box just below the soles, in sprite px: the ground line. */
+  soles: number;
   /** Turns from facing the viewer and steps off. */
   start: Record<Direction, Frame[]>;
   walk: Record<Direction, Frame[]>;
@@ -55,7 +70,6 @@ export interface Doll {
   idle: Frame;
   /** Bottom to top. */
   slots: Slot[];
-  defaultLook: Look;
 }
 
 /** Names follow the PixelLab export: frame_000..frame_00N. */

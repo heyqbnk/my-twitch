@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { emoteImage, type Emote } from '../twitch/emotes';
 
-// size — высота картинки в пикселях; без него эмодзи встраивается в строку текста
+/**
+ * size — высота картинки в пикселях; без него эмодзи встраивается в строку текста
+ */
 const props = defineProps<{ emote: Emote; overlays: Emote[]; size?: number }>();
 
 function lightSrcset(e: Emote) {

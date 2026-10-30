@@ -2,7 +2,9 @@ import type { Emote } from './emotes';
 import { cachedOnce, fetchJson } from './http';
 
 const API_URL = 'https://7tv.io/v3';
-// Флаг ZERO_WIDTH: у активного эмодзи в наборе (1 << 0) и у самого эмодзи (1 << 8)
+/**
+ * Флаг ZERO_WIDTH: у активного эмодзи в наборе (1 << 0) и у самого эмодзи (1 << 8)
+ */
 const ACTIVE_ZERO_WIDTH = 1 << 0;
 const DATA_ZERO_WIDTH = 1 << 8;
 
@@ -28,7 +30,9 @@ export const fetchGlobalEmotes = cachedOnce(async () => {
   return (set?.emotes ?? []).map(toEmote);
 });
 
-// twitchUserId — room-id канала. Если у канала нет аккаунта 7TV, возвращает [].
+/**
+ * twitchUserId — room-id канала. Если у канала нет аккаунта 7TV, возвращает [].
+ */
 export async function fetchChannelEmotes(
   twitchUserId: string,
   signal?: AbortSignal,

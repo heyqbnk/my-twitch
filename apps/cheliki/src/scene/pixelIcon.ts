@@ -1,13 +1,19 @@
 export interface PixelIcon {
-  // CSS url() с SVG иконки — для mask, чтобы иконка красилась цветом текста
+  /**
+   * CSS url() с SVG иконки — для mask, чтобы иконка красилась цветом текста
+   */
   mask: string;
-  // Размер в пикселях сетки
+  /**
+   * Размер в пикселях сетки
+   */
   width: number;
   height: number;
 }
 
-// Пиксельная иконка из ASCII-сетки: '#' — закрашенный пиксель, остальное — прозрачное.
-// Каждый ряд — отрезки подряд идущих пикселей, без сглаживания краёв
+/**
+ * Пиксельная иконка из ASCII-сетки: '#' — закрашенный пиксель, остальное — прозрачное.
+ * Каждый ряд — отрезки подряд идущих пикселей, без сглаживания краёв
+ */
 export function pixelIcon(rows: string[]): PixelIcon {
   const width = Math.max(...rows.map(row => row.length));
   const height = rows.length;
@@ -19,7 +25,9 @@ export function pixelIcon(rows: string[]): PixelIcon {
   return { mask: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`, width, height };
 }
 
-// Звено цепи перед доменом ссылки
+/**
+ * Звено цепи перед доменом ссылки
+ */
 export const LINK_ICON = pixelIcon([
   '.##...##.',
   '#.......#',

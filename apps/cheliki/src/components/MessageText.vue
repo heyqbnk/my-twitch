@@ -6,10 +6,14 @@ import type { ChatMessage } from '../composables/useTwitchChat';
 import { LINK_ICON } from '../scene/pixelIcon';
 import ChatEmote from './ChatEmote.vue';
 
-// stream — сообщение «печатается»: символ (эмодзи — целиком) раз в STREAM_CHAR_MS,
-// а длинное ускоряется, чтобы целиком появиться не дольше чем за STREAM_MAX_MS
+/**
+ * stream — сообщение «печатается»: символ (эмодзи — целиком) раз в STREAM_CHAR_MS,
+ * а длинное ускоряется, чтобы целиком появиться не дольше чем за STREAM_MAX_MS
+ */
 const props = defineProps<{ message: ChatMessage; stream?: boolean }>();
-// Сообщение напечатано целиком
+/**
+ * Сообщение напечатано целиком
+ */
 const emit = defineEmits<{ streamed: [] }>();
 
 const STREAM_CHAR_MS = 40;
@@ -21,8 +25,10 @@ const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
 const split = (text: string) => Array.from(graphemes.segment(text), s => s.segment);
 
-// Части сообщения с разбивкой текста, доменов ссылок и ников упоминаний на графемы:
-// эмодзи-последовательности не рвутся
+/**
+ * Части сообщения с разбивкой текста, доменов ссылок и ников упоминаний на графемы:
+ * эмодзи-последовательности не рвутся
+ */
 const segments = computed(() => messageParts(props.message).map(part => {
   if (part.type === 'text') return { part, chars: split(part.text) };
   if (part.type === 'link') return { part, chars: split(part.domain) };
@@ -51,15 +57,19 @@ function startStream() {
 watch(() => props.message, startStream, { immediate: true });
 onBeforeUnmount(() => cancelAnimationFrame(frame));
 
-// Сколько символов уже видно. Первый — сразу
+/**
+ * Сколько символов уже видно. Первый — сразу
+ */
 const shown = computed(() => {
   if (!props.stream) return total.value;
   const step = Math.min(STREAM_CHAR_MS, STREAM_MAX_MS / Math.max(1, total.value));
   return Math.min(total.value, Math.floor(elapsed.value / step) + 1);
 });
 
-// Что из каждой части уже напечатано: text — видимый текст, shown — видна ли часть хоть немного,
-// pending — допечатана ли не до конца
+/**
+ * Что из каждой части уже напечатано: text — видимый текст, shown — видна ли часть хоть немного,
+ * pending — допечатана ли не до конца
+ */
 const pieces = computed(() => {
   let left = shown.value;
   return segments.value.map(({ part, chars }) => {
@@ -75,8 +85,10 @@ const pieces = computed(() => {
   });
 });
 
-// Слот (например, курсор терминала) стоит сразу за напечатанным: в первой недопечатанной части
-// или после всех
+/**
+ * Слот (например, курсор терминала) стоит сразу за напечатанным: в первой недопечатанной части
+ * или после всех
+ */
 const cursorAt = computed(() => {
   const i = pieces.value.findIndex(piece => piece.pending);
   return i === -1 ? pieces.value.length : i;

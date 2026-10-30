@@ -1,18 +1,26 @@
 import type { MessagePart } from './emotes';
 
-// Ссылка — слово со схемой http(s), с www. или домен с путём либо в популярной зоне:
-// так «node.js» или «т.е.» не становятся ссылками
+/**
+ * Ссылка — слово со схемой http(s), с www. или домен с путём либо в популярной зоне:
+ * так «node.js» или «т.е.» не становятся ссылками
+ */
 const LINK = /^(https?:\/\/)?(www\.)?((?:[\p{L}\d-]+\.)+(\p{L}{2,63}))(?::\d+)?([/?#]\S*)?$/iu;
 const BARE_TLDS = new Set(
   'com net org ru рф su ua by kz io tv gg me dev app co be ly gl to cc info xyz link site online pro store'
     .split(' '),
 );
-// Упоминание «@ник»: @ не посреди слова (не адрес почты) и не задвоена
+/**
+ * Упоминание «@ник»: @ не посреди слова (не адрес почты) и не задвоена
+ */
 export const MENTION = /(?<![\p{L}\p{N}_@])@([\p{L}\p{N}_]+)/gu;
-// Знаки препинания в конце слова — продолжение фразы, а не ссылки
+/**
+ * Знаки препинания в конце слова — продолжение фразы, а не ссылки
+ */
 const TRAILING_PUNCTUATION = /[.,!?;:)\]}»"'…]+$/u;
 
-// Домен ссылки без www. или null, если слово не ссылка
+/**
+ * Домен ссылки без www. или null, если слово не ссылка
+ */
 function linkDomain(word: string): string | null {
   const match = LINK.exec(word);
   if (!match) return null;
@@ -21,7 +29,9 @@ function linkDomain(word: string): string | null {
   return host.toLowerCase();
 }
 
-// Разбивает текст на текстовые фрагменты, ссылки, от которых остаётся только домен, и упоминания
+/**
+ * Разбивает текст на текстовые фрагменты, ссылки, от которых остаётся только домен, и упоминания
+ */
 export function splitLinks(text: string): MessagePart[] {
   const parts: MessagePart[] = [];
   const pushText = (chunk: string) => {

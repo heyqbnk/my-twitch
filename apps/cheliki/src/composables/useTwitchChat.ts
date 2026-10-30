@@ -9,9 +9,13 @@ const TWITCH_IRC_URL = 'wss://irc-ws.chat.twitch.tv:443';
 const MAX_MESSAGES = 200;
 const MAX_RECONNECT_DELAY = 30_000;
 const SAVE_DELAY = 500;
-// Команда зрителя «уйти со сцены»: вместо неё человечек прощается и уходит
+/**
+ * Команда зрителя «уйти со сцены»: вместо неё человечек прощается и уходит
+ */
 const VANISH_COMMAND = '!vanish';
-// Прощание тоже уводит со сцены, но только адресованное всем: не ответ и без упоминаний
+/**
+ * Прощание тоже уводит со сцены, но только адресованное всем: не ответ и без упоминаний
+ */
 const FAREWELLS = ['bb', 'бб'];
 
 export type ChatStatus = 'idle' | 'connecting' | 'connected' | 'disconnected';
@@ -19,40 +23,64 @@ export type ChatStatus = 'idle' | 'connecting' | 'connected' | 'disconnected';
 export interface ChatMessage {
   id: string;
   login: string;
-  // Twitch ID автора: не меняется при смене логина. В истории до его появления отсутствует
+  /**
+   * Twitch ID автора: не меняется при смене логина. В истории до его появления отсутствует
+   */
   userId?: string;
   author: string;
   color: string | null;
-  // Владелец канала, модератор или VIP — по значкам из тега badges
+  /**
+   * Владелец канала, модератор или VIP — по значкам из тега badges
+   */
   role?: ChatRole;
-  // Общий стаж подписки в месяцах, 0 — не подписан. В истории до его появления отсутствует
+  /**
+   * Общий стаж подписки в месяцах, 0 — не подписан. В истории до его появления отсутствует
+   */
   subMonths?: number;
   parts: MessagePart[];
   timestamp: number;
-  // Когда сообщение показано: при ?msg_delay= позже timestamp. Нет — показано сразу
+  /**
+   * Когда сообщение показано: при ?msg_delay= позже timestamp. Нет — показано сразу
+   */
   shownAt?: number;
-  // Сообщение отправлено через награду «Выделить моё сообщение»
+  /**
+   * Сообщение отправлено через награду «Выделить моё сообщение»
+   */
   highlighted?: boolean;
-  // Первое сообщение пользователя на этом канале
+  /**
+   * Первое сообщение пользователя на этом канале
+   */
   firstMessage?: boolean;
-  // Команда VANISH_COMMAND или прощание: уводит автора со сцены
+  /**
+   * Команда VANISH_COMMAND или прощание: уводит автора со сцены
+   */
   vanish?: boolean;
-  // Прощание из FAREWELLS: вместо текста показывается эмодзи «bb»
+  /**
+   * Прощание из FAREWELLS: вместо текста показывается эмодзи «bb»
+   */
   farewell?: boolean;
-  // Сообщение чат-бота: на сцене бот — робот, а его сообщения — в облачке-терминале
+  /**
+   * Сообщение чат-бота
+   */
   bot?: boolean;
-  // Кому адресовано: автор сообщения, на которое это ответ, и упомянутые через @, кроме самого автора.
-  // Ник в нижнем регистре — логин или отображаемое имя. Нет — сообщение для всех
+  /**
+   * Кому адресовано: автор сообщения, на которое это ответ, и упомянутые через @, кроме самого автора.
+   * Ник в нижнем регистре — логин или отображаемое имя. Нет — сообщение для всех
+   */
   addressees?: string[];
 }
 
-// С этого момента отсчитываются показ облачка и время на сцене
+/**
+ * С этого момента отсчитываются показ облачка и время на сцене
+ */
 export function shownAt(message: ChatMessage): number {
   return message.shownAt ?? message.timestamp;
 }
 
-// Ответ на сообщение — прощание с конкретным человеком, а не уход со сцены.
-// Упоминаний в прощании быть не может: текст должен совпасть целиком
+/**
+ * Ответ на сообщение — прощание с конкретным человеком, а не уход со сцены.
+ * Упоминаний в прощании быть не может: текст должен совпасть целиком
+ */
 function isFarewell(msg: IrcMessage, text: string): boolean {
   return FAREWELLS.includes(text.trim().toLowerCase()) && !msg.tags['reply-parent-msg-id'];
 }
@@ -67,7 +95,9 @@ function addresseesOf(msg: IrcMessage, login: string, text: string): string[] | 
   return names.size ? [...names] : undefined;
 }
 
-// Сообщение PRIVMSG в виде для чата и сцены. Песочница собирает им сообщения от имени выдуманных зрителей
+/**
+ * Сообщение PRIVMSG в виде для чата и сцены. Песочница собирает им сообщения от имени выдуманных зрителей
+ */
 export function toChatMessage(msg: IrcMessage): ChatMessage {
   const login = msg.prefix?.split('!')[0] ?? 'unknown';
   const text = msg.params[1] ?? '';
@@ -91,8 +121,10 @@ export function toChatMessage(msg: IrcMessage): ChatMessage {
   };
 }
 
-// Анонимное read-only подключение к чату канала через Twitch IRC (WebSocket).
-// delay — задержка показа сообщения в мс: удалённое модератором за это время так и не появится.
+/**
+ * Анонимное read-only подключение к чату канала через Twitch IRC (WebSocket).
+ * delay — задержка показа сообщения в мс: удалённое модератором за это время так и не появится.
+ */
 export function useTwitchChat(channel: Ref<string | null>, delay: Ref<number>) {
   const messages = ref<ChatMessage[]>([]);
   const status = ref<ChatStatus>('idle');

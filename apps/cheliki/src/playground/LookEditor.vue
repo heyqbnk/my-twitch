@@ -1,21 +1,36 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { AccessoryName, PantsName, ShoesName, TopName } from '../scene/actorStyle';
-import { WALKER } from '../scene/walkerSprite';
-import { lookOf, randomUserId, type Dude, type Look } from './usePlayground';
+import { dollLook } from '../doll-chat/dollLook';
+import DollSprite from '../doll/DollSprite.vue';
+import type { Doll, Look, Slot } from '../doll/paperDoll';
+import { actorColor } from '../scene/actorStyle';
+import controls from './controls.module.css';
+import { randomUserId, withNickColor, type Dude } from './usePlayground';
 
-const props = defineProps<{ dude: Dude }>();
+const props = defineProps<{ doll: Doll; dude: Dude }>();
 
-const TOPS = Object.keys(WALKER.clothes.tops) as TopName[];
-const PANTS = Object.keys(WALKER.clothes.pants) as PantsName[];
-const SHOES = Object.keys(WALKER.clothes.shoes) as ShoesName[];
-const ACCESSORIES = Object.keys(WALKER.accessories) as AccessoryName[];
-const DEFAULT_ACCESSORY_COLOR = '#e53935';
+const SLOT_LABELS: Record<string, string> = {
+  pants: 'Штаны',
+  shoes: 'Обувь',
+  top: 'Верх',
+  eyes: 'Глаза',
+  hair: 'Волосы',
+  neck: 'Шея',
+  mouth: 'Во рту',
+  eyewear: 'Очки',
+  headwear: 'Голова',
+};
+const DEFAULT_COLOR = '#808080';
 
-const look = computed(() => lookOf(props.dude));
+const nickColor = computed(() => actorColor(props.dude));
+const look = computed(() => withNickColor(
+  props.dude.look ?? dollLook(props.doll, { ...props.dude, color: nickColor.value }),
+  nickColor.value,
+));
+const isAuto = computed(() => props.dude.look === null);
 
-/* eslint-disable vue/no-mutating-props -- зритель — общее реактивное состояние песочницы */
-// Первая правка превращает автоматическую внешность в ручную
+/* eslint-disable vue/no-mutating-props -- the viewer is the playground's shared reactive state */
+/** The first edit turns the automatic look into a manual one. */
 function edit(change: (look: Look) => void) {
   const next = structuredClone(look.value);
   change(next);
@@ -26,184 +41,106 @@ function resetLook() {
   props.dude.look = null;
 }
 
-// Новый Twitch ID — новая автоматическая внешность
+/** A new Twitch ID gives a new automatic look. */
 function reroll() {
   props.dude.userId = randomUserId();
   props.dude.look = null;
 }
 /* eslint-enable vue/no-mutating-props */
 
-function accessory(name: AccessoryName) {
-  return look.value.accessories.find(a => a.name === name);
-}
-
-// Аксессуары держим в порядке отрисовки из WALKER.accessories
-function toggleAccessory(name: AccessoryName, on: boolean) {
+function setName(slot: Slot, name: string) {
   edit(l => {
-    const colors = new Map(l.accessories.map(a => [a.name, a.color]));
-    if (on) colors.set(name, colors.get(name) || DEFAULT_ACCESSORY_COLOR);
-    else colors.delete(name);
-    l.accessories = ACCESSORIES
-      .filter(n => colors.has(n))
-      .map(n => ({ name: n, color: colors.get(n)! }));
+    const color = l[slot.key]?.color ?? slot.palette?.[0] ?? DEFAULT_COLOR;
+    l[slot.key] = name ? { name, color } : null;
   });
 }
 
-function setAccessoryColor(name: AccessoryName, color: string) {
+function setColor(slot: Slot, color: string) {
   edit(l => {
-    const item = l.accessories.find(a => a.name === name);
-    if (item) item.color = color;
+    const part = l[slot.key];
+    if (part) part.color = color;
   });
 }
 
-const isAuto = computed(() => props.dude.look === null);
 const value = (event: Event) => (event.target as HTMLInputElement).value;
-const checked = (event: Event) => (event.target as HTMLInputElement).checked;
-
-// Цвет из палитры может быть не в #rrggbb — input[type=color] его не покажет, но и не сломается
-const toHex = (color: string) => (/^#[0-9a-f]{6}$/i.test(color) ? color : '#000000');
+/** A colour that isn't #rrggbb (hsl from the palette) can't be shown by input[type=color]. */
+const toHex = (color?: string) => (color && /^#[0-9a-f]{6}$/i.test(color) ? color : '#000000');
 </script>
 
 <template>
-  <div class="look">
-    <div class="look__actions">
-      <span class="look__mode">{{ isAuto ? 'Внешность по Twitch ID' : 'Внешность вручную' }}</span>
-      <button type="button" :disabled="isAuto" @click="resetLook">Авто</button>
-      <button type="button" title="Новый Twitch ID — новая случайная внешность" @click="reroll">
-        🎲
-      </button>
+  <div class="flex items-center gap-2">
+    <span class="flex-1 text-xs text-neutral-400">
+      {{ isAuto ? 'По Twitch ID, как на сцене' : 'Задана вручную' }}
+    </span>
+    <button
+      type="button"
+      :class="controls.button"
+      :disabled="isAuto"
+      @click="resetLook"
+    >
+      Авто
+    </button>
+    <button
+      type="button"
+      :class="controls.button"
+      title="Новый Twitch ID — новая автоматическая внешность"
+      @click="reroll"
+    >
+      🎲
+    </button>
+  </div>
+
+  <div class="flex justify-center rounded bg-neutral-700 py-1">
+    <DollSprite :doll="doll" :frame="doll.idle" :look="look" :scale="2" />
+  </div>
+
+  <div
+    v-for="slot in doll.slots"
+    :key="slot.key"
+    class="grid grid-cols-[60px_1fr_36px] items-center gap-1.5"
+  >
+    <span>{{ SLOT_LABELS[slot.key] ?? slot.key }}</span>
+    <select
+      :class="controls.input"
+      :value="look[slot.key]?.name ?? ''"
+      @change="setName(slot, value($event))"
+    >
+      <option value="">— нет —</option>
+      <option v-for="name in slot.names" :key="name" :value="name">{{ name }}</option>
+    </select>
+    <span v-if="slot.key === 'top'" class="text-xs text-neutral-500">ник</span>
+    <input
+      v-else-if="slot.tinted"
+      type="color"
+      :class="controls.color"
+      :disabled="!look[slot.key]"
+      :value="toHex(look[slot.key]?.color)"
+      @input="setColor(slot, value($event))"
+    />
+    <div v-if="slot.palette && look[slot.key]" class="col-span-3 flex flex-wrap gap-1 pl-[66px]">
+      <button
+        v-for="color in slot.palette"
+        :key="color"
+        type="button"
+        :class="[cn.swatch, look[slot.key]?.color === color && cn.swatchActive]"
+        :style="{ background: color }"
+        :title="color"
+        @click="setColor(slot, color)"
+      />
     </div>
-
-    <label class="look__row">
-      <span>Причёска</span>
-      <select :value="look.hairstyle" @change="edit(l => (l.hairstyle = Number(value($event))))">
-        <option v-for="(name, i) in WALKER.hairstyles" :key="name" :value="i">{{ name }}</option>
-      </select>
-      <input
-        type="color"
-        :value="toHex(look.hairColor)"
-        @input="edit(l => (l.hairColor = value($event)))"
-      />
-    </label>
-
-    <label class="look__row">
-      <span>Верх</span>
-      <select
-        :value="look.outfit.top"
-        @change="edit(l => (l.outfit.top = value($event) as TopName))"
-      >
-        <option v-for="name in TOPS" :key="name" :value="name">{{ name }}</option>
-      </select>
-      <span class="look__hint">в цвет ника</span>
-    </label>
-
-    <label class="look__row">
-      <span>Штаны</span>
-      <select
-        :value="look.outfit.pants"
-        @change="edit(l => (l.outfit.pants = value($event) as PantsName))"
-      >
-        <option v-for="name in PANTS" :key="name" :value="name">{{ name }}</option>
-      </select>
-      <input
-        type="color"
-        :value="toHex(look.outfit.pantsColor)"
-        @input="edit(l => (l.outfit.pantsColor = value($event)))"
-      />
-    </label>
-
-    <label class="look__row">
-      <span>Обувь</span>
-      <select
-        :value="look.outfit.shoes"
-        @change="edit(l => (l.outfit.shoes = value($event) as ShoesName))"
-      >
-        <option v-for="name in SHOES" :key="name" :value="name">{{ name }}</option>
-      </select>
-      <input
-        type="color"
-        :value="toHex(look.outfit.shoesColor)"
-        @input="edit(l => (l.outfit.shoesColor = value($event)))"
-      />
-    </label>
-
-    <fieldset class="look__accessories">
-      <legend>Аксессуары</legend>
-      <label v-for="name in ACCESSORIES" :key="name" class="look__accessory">
-        <input
-          type="checkbox"
-          :checked="!!accessory(name)"
-          @change="toggleAccessory(name, checked($event))"
-        />
-        <span>{{ name }}</span>
-        <input
-          v-if="accessory(name)"
-          type="color"
-          :value="toHex(accessory(name)!.color)"
-          @input="setAccessoryColor(name, value($event))"
-        />
-      </label>
-    </fieldset>
   </div>
 </template>
 
-<style scoped>
-.look {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+<style module="cn">
+.swatch {
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgb(0 0 0 / 50%);
+  border-radius: 3px;
+  cursor: pointer;
 }
 
-.look__actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.look__mode {
-  flex: 1;
-  font-size: 0.85em;
-  opacity: 0.8;
-}
-
-.look__row {
-  display: grid;
-  grid-template-columns: 70px 1fr 40px;
-  align-items: center;
-  gap: 6px;
-}
-
-.look__hint {
-  font-size: 0.75em;
-  opacity: 0.6;
-}
-
-.look__accessories {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2px 8px;
-  margin: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.look__accessory {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 26px;
-}
-
-.look__accessory input[type='color'] {
-  margin-left: auto;
-}
-
-input[type='color'] {
-  width: 36px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--border);
-  background: none;
+.swatchActive {
+  outline: 2px solid white;
 }
 </style>

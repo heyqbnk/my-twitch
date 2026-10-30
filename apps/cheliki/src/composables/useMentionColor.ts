@@ -6,14 +6,18 @@ type MentionColorResolver = (name: string) => string;
 
 const KEY: InjectionKey<MentionColorResolver> = Symbol('mentionColor');
 
-// Кто не писал в чат на нашей памяти — цвет, вычисленный из ника,
-// как у человечка без своего цвета
+/**
+ * Кто не писал в чат на нашей памяти — цвет, вычисленный из ника,
+ * как у человечка без своего цвета
+ */
 const fallback: MentionColorResolver = name => (
   actorColor({ color: null, login: name.toLowerCase() })
 );
 
-// Цвет упомянутого — цвет его человечка по последнему сообщению. Упоминают и по логину,
-// и по отображаемому имени, без учёта регистра
+/**
+ * Цвет упомянутого — цвет его человечка по последнему сообщению. Упоминают и по логину,
+ * и по отображаемому имени, без учёта регистра
+ */
 export function provideMentionColor(messages: Ref<ChatMessage[]>) {
   const colors = computed(() => {
     const map = new Map<string, string>();

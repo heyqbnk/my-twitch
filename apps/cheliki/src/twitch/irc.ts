@@ -17,7 +17,9 @@ function unescapeTagValue(value: string): string {
   return value.replace(/\\(.?)/g, (_, ch: string) => TAG_ESCAPES[ch] ?? ch);
 }
 
-// Разбирает одну строку IRC: "@tags :prefix COMMAND param1 param2 :trailing"
+/**
+ * Разбирает одну строку IRC: "@tags :prefix COMMAND param1 param2 :trailing"
+ */
 export function parseIrcLine(line: string): IrcMessage | null {
   let rest = line;
   const tags: Record<string, string> = {};

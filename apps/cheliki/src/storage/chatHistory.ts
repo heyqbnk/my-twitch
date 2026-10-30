@@ -1,6 +1,8 @@
 import type { ChatMessage } from '../composables/useTwitchChat';
 
-// Версия в ключе: при изменении формата ChatMessage старые записи просто не прочитаются
+/**
+ * Версия в ключе: при изменении формата ChatMessage старые записи просто не прочитаются
+ */
 const KEY_PREFIX = 'twitch-chat:v1:';
 
 function isChatMessage(value: unknown): value is ChatMessage {

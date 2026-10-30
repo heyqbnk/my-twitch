@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "browserslist": [
+    "chrome >= 127"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
@@ -23,6 +26,7 @@
     "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/tsconfig": "^0.9.1",
     "eslint": "^10.12.0",
+    "eslint-plugin-jsdoc": "^65.3.16",
     "eslint-plugin-vue": "^10.11.1",
     "globals": "^17.13.0",
     "jiti": "^2.7.0",

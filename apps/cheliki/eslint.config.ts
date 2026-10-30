@@ -1,13 +1,13 @@
 import js from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
+import jsdoc from 'eslint-plugin-jsdoc';
 import pluginVue from 'eslint-plugin-vue';
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript';
 import { globalIgnores } from 'eslint/config';
 import globals from 'globals';
 
 export default defineConfigWithVueTs(
-  // walkerSprite.ts генерируется scripts/generate-walker.mjs
-  globalIgnores(['dist/**', 'node_modules/**', 'src/scene/walkerSprite.ts']),
+  globalIgnores(['dist/**', 'node_modules/**']),
 
   {
     name: 'cheliki/files-to-lint',
@@ -162,8 +162,33 @@ export default defineConfigWithVueTs(
   },
 
   {
+    name: 'cheliki/jsdoc',
+    plugins: { jsdoc },
+    rules: {
+      // descriptions of declarations are JSDoc, not // comments: the IDE shows them on hover
+      'jsdoc/convert-to-jsdoc-comments': ['error', {
+        contexts: [
+          'ArrowFunctionExpression',
+          'FunctionDeclaration',
+          'FunctionExpression',
+          'TSDeclareFunction',
+          'ClassDeclaration',
+          'TSTypeAliasDeclaration',
+          'TSInterfaceDeclaration',
+          'TSEnumDeclaration',
+          // arrow and function expressions are already covered above
+          'Program > VariableDeclaration:not([declarations.0.init.type=/FunctionExpression$/])',
+          'ExportNamedDeclaration[declaration.type="VariableDeclaration"]:not([declaration.declarations.0.init.type=/FunctionExpression$/])',
+        ],
+        // module-level variables are covered by contexts; locals keep plain comments
+        contextsBeforeAndAfter: ['TSPropertySignature', 'PropertyDefinition'],
+      }],
+    },
+  },
+
+  {
     name: 'cheliki/node-scripts',
-    files: ['scripts/**/*.{js,mjs}', 'vite.config.ts', 'eslint.config.ts'],
+    files: ['vite.config.ts', 'eslint.config.ts'],
     languageOptions: {
       globals: globals.node,
     },

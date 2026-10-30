@@ -1,11 +1,15 @@
 import { onScopeDispose, shallowRef, watch, type Ref } from 'vue';
 import { fetchFollowedAt } from '../twitch/ivr';
 
-// Одновременных запросов не больше: история чата может разом дать сотню зрителей
+/**
+ * Одновременных запросов не больше: история чата может разом дать сотню зрителей
+ */
 const MAX_PARALLEL = 4;
 
-// Даты фоллова канала (мс, null — не зафолловлен) для зрителей из logins.
-// Каждого спрашиваем один раз за канал; пока ответа нет, зрителя в карте нет
+/**
+ * Даты фоллова канала (мс, null — не зафолловлен) для зрителей из logins.
+ * Каждого спрашиваем один раз за канал; пока ответа нет, зрителя в карте нет
+ */
 export function useFollowDates(channel: Ref<string>, logins: Ref<string[]>) {
   const dates = shallowRef<ReadonlyMap<string, number | null>>(new Map());
   let controller = new AbortController();

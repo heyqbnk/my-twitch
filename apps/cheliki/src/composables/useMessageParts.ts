@@ -6,12 +6,16 @@ type MessagePartsResolver = (msg: ChatMessage) => MessagePart[];
 
 const KEY: InjectionKey<MessagePartsResolver> = Symbol('messageParts');
 
-// Прощание показываем эмодзи «bb»: канальным, если он есть в наборе, иначе этим из 7TV
+/**
+ * Прощание показываем эмодзи «bb»: канальным, если он есть в наборе, иначе этим из 7TV
+ */
 const FAREWELL_EMOTE_NAME = 'bb';
 const FAREWELL_EMOTE: Emote = { provider: '7tv', id: '01FN1M3GQR00071FCSB63SB1P4', name: FAREWELL_EMOTE_NAME };
 
-// Эмодзи 7TV и BTTV подгружаются асинхронно, поэтому подставляем их при отрисовке,
-// кэшируя результат на сообщение до смены набора эмодзи.
+/**
+ * Эмодзи 7TV и BTTV подгружаются асинхронно, поэтому подставляем их при отрисовке,
+ * кэшируя результат на сообщение до смены набора эмодзи.
+ */
 export function provideMessageParts(emotes: Ref<EmoteMap>) {
   let cache = new WeakMap<ChatMessage, MessagePart[]>();
   watch(emotes, () => (cache = new WeakMap()));

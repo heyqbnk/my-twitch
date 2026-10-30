@@ -56,13 +56,15 @@ const SHOE_COLORS = [
 
 /**
  * The 64px doll on a 76px canvas: frames drawn facing west, grey clothes to tint and eyes from
- * paper-doll-64.aseprite; grey hair to tint is in its hair/* layers. Grey shoes to tint are only
+ * paper-doll.aseprite; grey hair to tint is in its hair/* layers. Grey shoes to tint are only
  * exported frames: three from PixelLab outfit transfers, sandals drawn over the bare feet.
  */
 export const DOLL_64: Doll = {
-  url: '/characters/paper-doll-64',
+  url: '/paper-doll',
   size: 76,
   walkStep: 3,
+  // The bare feet end on row 64; some shoes reach a pixel or two lower, into the grass
+  soles: 65,
   start: animation('start-walk', 'west', 8, 76, 0),
   walk: animation('walk-loop', 'west', 9, 76, 0),
   // The start ends in the pose before walk[0]
@@ -70,31 +72,37 @@ export const DOLL_64: Doll = {
   stop: STOP,
   idle: STOP.west.at(-1)!,
   slots: [
-    { key: 'pants', label: 'Штаны', folder: 'clothes', names: ['jeans', 'shorts'], tinted: true },
+    { key: 'pants', folder: 'clothes', names: ['jeans', 'shorts'], tinted: true },
     {
       key: 'shoes',
-      label: 'Обувь',
       folder: 'shoes',
       names: ['boots', 'sneakers', 'loafers', 'sandals'],
       tinted: true,
       palette: SHOE_COLORS,
     },
-    { key: 'top', label: 'Верх', folder: 'clothes', names: ['t-shirt'], tinted: true },
-    { key: 'eyes', label: 'Глаза', folder: 'face/eyes', names: ['sticks'] },
+    { key: 'top', folder: 'clothes', names: ['t-shirt'], tinted: true },
+    { key: 'eyes', folder: 'face/eyes', names: ['sticks'] },
     {
       key: 'hair',
-      label: 'Причёска',
       folder: 'hair',
       names: ['quiff', 'bun', 'wavy', 'ponytail', 'fringe', 'part'],
       tinted: true,
       palette: HAIR_COLORS,
     },
+    // Accessories as in dudes, with its shares; drawn in colour as PixelLab made them
+    { key: 'neck', folder: 'accessories', names: ['scarf', 'bowtie'], shares: { scarf: 10, bowtie: 6 } },
+    { key: 'mouth', folder: 'accessories', names: ['cigar', 'lollipop'], shares: { cigar: 6, lollipop: 6 } },
+    {
+      key: 'eyewear',
+      folder: 'accessories',
+      names: ['glasses', 'vr', 'monocle'],
+      shares: { glasses: 14, vr: 6, monocle: 4 },
+    },
+    {
+      key: 'headwear',
+      folder: 'accessories',
+      names: ['beanie', 'helmet', 'cap', 'crown', 'halo', 'headphones'],
+      shares: { beanie: 12, helmet: 8, cap: 12, crown: 3, halo: 2, headphones: 14 },
+    },
   ],
-  defaultLook: {
-    pants: { name: 'jeans' },
-    shoes: { name: 'sneakers', color: SHOE_COLORS[5] },
-    top: { name: 't-shirt' },
-    eyes: { name: 'sticks' },
-    hair: { name: 'quiff', color: HAIR_COLORS[2] },
-  },
 };

@@ -4,16 +4,22 @@ export interface Emote {
   provider: 'twitch' | '7tv' | 'bttv';
   id: string;
   name: string;
-  // Zero-width эмодзи рисуется поверх предыдущего
+  /**
+   * Zero-width эмодзи рисуется поверх предыдущего
+   */
   zeroWidth?: boolean;
 }
 
 export type EmotePart = { type: 'emote'; emote: Emote; overlays: Emote[] };
 
-// От ссылки показываем только домен
+/**
+ * От ссылки показываем только домен
+ */
 export type LinkPart = { type: 'link'; domain: string };
 
-// Упоминание «@ник»: name — ник без @, как написан
+/**
+ * Упоминание «@ник»: name — ник без @, как написан
+ */
 export type MentionPart = { type: 'mention'; name: string };
 
 export type MessagePart = { type: 'text'; text: string } | EmotePart | LinkPart | MentionPart;
@@ -26,8 +32,10 @@ interface EmoteRange {
   end: number;
 }
 
-// Тег emotes: "25:0-4,12-16/1902:6-10" — id эмодзи и диапазоны (включительно)
-// в символах Unicode (code points), а не в UTF-16.
+/**
+ * Тег emotes: "25:0-4,12-16/1902:6-10" — id эмодзи и диапазоны (включительно)
+ * в символах Unicode (code points), а не в UTF-16.
+ */
 function parseEmotesTag(tag: string): EmoteRange[] {
   const ranges: EmoteRange[] = [];
   for (const entry of tag.split('/')) {
@@ -41,7 +49,9 @@ function parseEmotesTag(tag: string): EmoteRange[] {
   return ranges.sort((a, b) => a.start - b.start);
 }
 
-// Разбивает текст на фрагменты по нативным эмодзи Twitch из тега emotes и по ссылкам.
+/**
+ * Разбивает текст на фрагменты по нативным эмодзи Twitch из тега emotes и по ссылкам.
+ */
 export function splitMessage(text: string, emotesTag: string | undefined): MessagePart[] {
   if (!emotesTag) return splitLinks(text);
 
@@ -61,7 +71,9 @@ export function splitMessage(text: string, emotesTag: string | undefined): Messa
   return parts;
 }
 
-// Ищет в текстовых фрагментах слова, совпадающие со сторонними эмодзи (7TV, BTTV).
+/**
+ * Ищет в текстовых фрагментах слова, совпадающие со сторонними эмодзи (7TV, BTTV).
+ */
 export function expandEmotes(parts: MessagePart[], emotes: EmoteMap): MessagePart[] {
   if (!emotes.size) return parts;
 
@@ -73,7 +85,9 @@ export function expandEmotes(parts: MessagePart[], emotes: EmoteMap): MessagePar
     else out.push({ type: 'text', text });
   };
 
-  // Прикрепляет zero-width эмодзи к предыдущему эмодзи, если между ними только пробелы
+  /**
+   * Прикрепляет zero-width эмодзи к предыдущему эмодзи, если между ними только пробелы
+   */
   const attachOverlay = (emote: Emote) => {
     let i = out.length - 1;
     const prev = out[i];
@@ -107,18 +121,9 @@ export function expandEmotes(parts: MessagePart[], emotes: EmoteMap): MessagePar
   return out;
 }
 
-// Сообщение из одних эмодзи (с точностью до пробелов) — возвращает их, иначе null.
-// Нативные эмодзи Unicode — обычный текст, эмодзи здесь только от Twitch, 7TV и BTTV
-export function emotesOnly(parts: MessagePart[]): EmotePart[] | null {
-  const out: EmotePart[] = [];
-  for (const part of parts) {
-    if (part.type === 'emote') out.push(part);
-    else if (part.type !== 'text' || part.text.trim()) return null;
-  }
-  return out.length ? out : null;
-}
-
-// large — для крупного показа: база 2x и 3x для экранов с высокой плотностью
+/**
+ * large — для крупного показа: база 2x и 3x для экранов с высокой плотностью
+ */
 export function emoteImage(emote: Emote, theme: 'light' | 'dark', large = false) {
   const [base1, base2] = large ? [2, 3] : [1, 2];
   if (emote.provider === 'bttv' || emote.provider === '7tv') {
