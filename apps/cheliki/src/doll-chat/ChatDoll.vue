@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onScopeDispose, ref, toRef, watch } from 'vue';
+
+import { dollLook, lookSeed } from './dollLook';
 import MessageText from '../components/MessageText.vue';
 import type { SceneActor } from '../composables/useSceneActors';
 import { shownAt } from '../composables/useTwitchChat';
@@ -7,7 +9,6 @@ import DollSprite from '../doll/DollSprite.vue';
 import type { Doll, Look } from '../doll/paperDoll';
 import { useWanderer } from '../doll/useWanderer';
 import { HIGHLIGHTED_PRIORITY, TALKING_PRIORITY } from '../scene/actorPriority';
-import { dollLook, lookSeed } from './dollLook';
 
 /** How long the message bubble is shown, in ms. */
 const BUBBLE_MS = 6000;
@@ -22,7 +23,7 @@ const props = defineProps<{
   look?: Look;
 }>();
 
-const { x, frame } = useWanderer(props.doll, toRef(props, 'width'));
+const { frame, x } = useWanderer(props.doll, toRef(props, 'width'));
 const look = computed(() => props.look ?? dollLook(props.doll, lookSeed(props.actor)));
 
 const talking = ref(false);
@@ -91,7 +92,7 @@ const zIndex = computed(() => {
   max-width: 260px;
   padding: 6px 10px;
   border-radius: 10px;
-  background: white;
+  background: var(--white);
   color: var(--text-h);
   font-size: 14px;
   line-height: 1.3;

@@ -10,16 +10,16 @@
   --first-msg: #9147ff;
   --highlight: #f59e0b;
   --link: #0284c7;
+  --white: #fff;
 
   /* Тёмная обводка ников и значков: оверлей прозрачный и лежит поверх стрима,
      так что фон под ником может быть любым. Одна и та же в светлой и тёмной теме */
   --outline-color: rgb(0 0 0 / 80%);
   --outline-width: 1px;
+  --sans: system-ui, 'Segoe UI', 'Roboto', sans-serif;
+  --mono: ui-monospace, 'Consolas', monospace;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 16px/145% var(--sans);
+  font: 16px / 145% var(--sans);
   color-scheme: light dark;
   color: var(--text);
   background: transparent;
@@ -29,9 +29,9 @@
 
 /* var() в кастомном свойстве подставляется там, где оно объявлено: чтобы обводка
    следовала за --outline-width, переопределённой ниже по дереву, элемент с новой
-   шириной должен объявить обводки заново — классом outline-scope */
+   шириной должен объявить обводки заново — классом outlineScope */
 :root,
-.outline-scope {
+.outlineScope {
   /* Тени и по диагоналям: контур сплошной, без просветов на скруглениях букв */
   --text-outline:
     var(--outline-width) 0 var(--outline-color),
@@ -42,6 +42,7 @@
     calc(-1 * var(--outline-width)) var(--outline-width) var(--outline-color),
     var(--outline-width) calc(-1 * var(--outline-width)) var(--outline-color),
     calc(-1 * var(--outline-width)) calc(-1 * var(--outline-width)) var(--outline-color);
+
   /* Двойная тень: одна мягкая тень на 1px у значка слишком бледная */
   --icon-outline:
     drop-shadow(0 0 var(--outline-width) rgb(0 0 0 / 90%))

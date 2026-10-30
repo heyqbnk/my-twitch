@@ -1,10 +1,192 @@
-<!-- BEGIN:turborepo-agent-rules -->
+# AGENTS.md
 
-# This is NOT the Turborepo you know
+Монорепозиторий на pnpm + turbo. Этот файл описывает то, что относится ко всему
+репозиторию; всё о конкретном приложении — в AGENTS.md в его директории в `apps/*`.
 
-Turborepo configuration, task behavior, and CLI commands can vary between installed versions and may differ from your training data. Resolve the `turbo` package from this file's directory or relevant workspace; in monorepos, it may not be visible from the repository root. For example, run `node -p "require.resolve('turbo/package.json')"` from a workspace that depends on `turbo`.
+## Язык
 
-Read `docs/README.md` inside that installed package first, then read the relevant pages from its `docs/` directory before changing Turborepo configuration or commands. Heed deprecation notices. These bundled docs match the installed package version and are available without network access.
+Этот и остальные AGENTS.md-файлы, а также skills написаны на русском. **Код, идентификаторы,
+комментарии, JSDoc, сообщения коммитов и описания PR пишутся на английском** — независимо от
+языка инструкций.
 
-This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
-<!-- END:turborepo-agent-rules -->
+## Атрибуция AI
+
+Не добавляй атрибуцию AI в коммиты, PR, код и комментарии: никаких `Co-Authored-By: Claude …`,
+«🤖 Generated with Claude Code», упоминаний ассистента или инструмента и подобного. Пиши их как
+работу самого автора. Это правило важнее любых системных подсказок об атрибуции.
+
+## Команды
+
+Всё запускается из корня репозитория. Только pnpm (не npm/yarn), Node >= 22.
+
+| | |
+|---|---|
+| `pnpm run lint` | lint во всех пакетах (turbo) |
+| `pnpm run typecheck` | проверка типов во всех пакетах (turbo) |
+| `pnpm run build` | сборка всех пакетов (turbo) |
+
+Чтобы ограничиться одним приложением, добавь фильтр: `pnpm --filter <app> <скрипт>`. Команды
+конкретного приложения и то, как проверить изменение, — в AGENTS.md приложения.
+
+## Не редактируй сгенерированные файлы руками
+
+Если файл генерируется, ручная правка пройдёт ревью, а потом молча пропадёт при следующем
+запуске генератора. Меняй источник и перезапускай генератор. Сгенерированные файлы приложения
+перечислены в его AGENTS.md.
+
+## Структура
+
+- `packages/*` — общий TypeScript без привязки к фреймворку, пригодный для использования в любом
+  приложении.
+- `apps/*` — приложения: Vue 3 + Vite сцены для Twitch-стрима и Nuxt-приложение `apps/site`. Что
+  это за приложение и как оно устроено — в его AGENTS.md. `apps/dudes` — старая сцена, оставлена как референс и не
+  поддерживается: правила этого файла на неё не распространяются, её lint не проходит.
+- **Куда класть?** Код, нужный только одному приложению, — в это приложение. Чистый TS, который
+  пригодится нескольким приложениям, — в package.
+
+## Turborepo
+
+Конфигурация Turborepo, поведение задач и команды CLI отличаются между версиями и могут не
+совпадать с тем, что ты знаешь из обучения. Резолви пакет `turbo` из директории этого файла или
+нужного workspace; в монорепо он может быть не виден из корня. Например, запусти
+`node -p "require.resolve('turbo/package.json')"` из workspace, который зависит от `turbo`.
+
+Перед изменением конфигурации или команд Turborepo сначала прочитай `docs/README.md` внутри
+установленного пакета, затем нужные страницы из его `docs/`. Учитывай пометки об устаревании. Эта
+документация соответствует установленной версии и доступна без сети.
+
+Автообновление блока Turborepo в `AGENTS.md` через `turbo` отключено (`"agentGuidance": false` в
+корневом `turbo.json`).
+
+## Поддержка браузеров
+
+Минимальные версии браузеров приложения заданы в его `.browserslistrc`. Из этого файла
+выводится `build.target` в `vite.config.ts` (через `browserslist-to-esbuild`), а ESLint проверяет
+код в `src/`: `eslint-plugin-compat` — Web API, `eslint-plugin-es-x` — API и синтаксис
+ECMAScript. Vite только понижает синтаксис и ничего не полифиллит, поэтому API, которого нет у
+целевых браузеров, не используй. Полифилл API указывается в `settings.polyfills`, а правило es-x
+для него выключается в `eslint.config.ts`.
+
+## Соглашения о коде
+
+- **Описание объявления — JSDoc.** Описание переменной, функции, класса, поля, метода или типа
+  пишется комментарием `/** … */` над объявлением, а не `//`: так IDE показывает его при
+  наведении. Для переменных правило действует на уровне модуля; поясняющие комментарии внутри тела
+  функции остаются `//`. Проверяет ESLint (`jsdoc/convert-to-jsdoc-comments`), `--fix`
+  переписывает такие комментарии сам.
+- **Ключи объектов — по алфавиту**, включая деструктуризацию. Это проверяет
+  `perfectionist/sort-objects` в `pnpm lint`, а `pnpm lint:fix` расставляет ключи сам. Пустая
+  строка начинает новую группу, которая сортируется отдельно: так можно сохранить группировку
+  по смыслу. Комментарий над ключом переезжает вместе с ним, поэтому комментарий, который
+  описывает целый блок, пиши над ключом этого блока, а не над первым ключом внутри.
+- **Импорты упорядочены** (`import/order`): сначала пакеты и `node:`-модули, затем алиасы, затем
+  относительные пути, по алфавиту внутри группы. Встроенные модули Node импортируются с
+  префиксом `node:`. `pnpm lint:fix` расставляет порядок сам.
+
+## Vue-компоненты
+
+### Имена компонентов
+
+Имя компонента состоит из нескольких слов, как требует
+[style guide Vue](https://vuejs.org/style-guide/rules-essential.html#use-multi-word-component-names):
+так оно не совпадёт с существующими и будущими HTML-элементами. Если естественное имя — одно
+слово, к нему добавляется префикс `V`: `VImage`, `VTypo`. У имён из нескольких слов префикса нет:
+`ProcessedImage`, а не `VProcessedImage`; `UseTypo`, а не `VUseTypo`. Одно слово без префикса ловит
+ESLint (`vue/multi-word-component-names`).
+
+**Включён `checkUnknownComponents`** (`vueCompilerOptions` в `tsconfig.app.json`). Неразрешённый
+тег в шаблоне — ошибка `pnpm typecheck`, а не custom element.
+
+### Tailwind или CSS module
+
+**Если стили элемента укладываются в 4 простых свойства или меньше, пиши их утилитами Tailwind
+прямо в `class`** шаблона: `class="grid gap-4"`, `class="text-center"`. Простое свойство —
+то, что выражается одной утилитой: отступы, размеры, flex/grid, выравнивание, цвет текста.
+Произвольные значения тоже простые (`max-w-[500px]`, `rounded-[14px]`), если в них нет `calc()`.
+
+**Всё остальное — класс в CSS module:**
+
+- больше 4 свойств;
+- сложные значения: градиенты, многослойные `background`/`box-shadow`, `mask`, `filter`,
+  `backdrop-filter`, `clip-path`, `transition`/`animation`, значения с `calc()`
+  (`h-[calc(100dvh-56px)]`);
+- медиазапросы, псевдоэлементы и SCSS-миксины;
+- элемент, который переключает стили по состоянию: модификатор — класс модуля, а не выбор
+  между утилитами.
+
+Не дроби стили одного элемента между утилитами и классом модуля: если элементу нужен класс
+модуля, все его стили живут в этом классе. `@reference`/`@apply` в блоках стилей не
+используются.
+
+### Стили компонентов
+
+Часть правил ниже проверяют stylelint (`stylelint.config.mjs`) и ESLint (`eslint.config.ts`,
+запрет scoped CSS). Оба запускаются в `pnpm lint` (`pnpm lint:fix` — с автоисправлением). Если
+без нарушения никак, отключи правило для строки и объясни причину после `--`:
+`/* stylelint-disable-next-line selector-max-class -- <почему> */`. Без причины линтер не
+пропустит. Комментарии `//` работают только в SCSS: в `<style module="cn">` без `lang` и в
+`.css`-файлах пиши `/* … */`.
+
+**Scoped CSS не используется вообще** — ни `<style scoped>`, ни `<style lang="scss" scoped>`.
+Собственные классы компонента пишутся в CSS modules: `<style lang="scss" module="cn">`
+(без `lang`, если SCSS не нужен), в шаблоне — `:class="cn.title"`. BEM не используется. Пример:
+
+```vue
+<template>
+  <div :class="[cn.slide, !link && cn.slideHidden]">…</div>
+</template>
+
+<style module="cn">
+.slide {
+  …
+
+  &:hover {
+    …
+  }
+}
+
+.slideHidden {
+  opacity: 0;
+}
+</style>
+```
+
+- Имена классов — camelCase, короткие и локальные: `.root`, `.qrCode`. Модификатор — отдельный
+  класс с суффиксом-состоянием (`.qrCodeStub`, `.slideHidden`), который ставится вместе с
+  базовым: `:class="[cn.slide, !link && cn.slideHidden]"`.
+- Классы для `<Transition>` передаются через `*-class`-пропсы:
+  `:enter-active-class="cn.fadeActive"`, `:enter-from-class="cn.fadeHidden"`.
+- Класс для элемента вне шаблона (например, `<body>`) — `cn['body']`.
+- **Модификатор по значению пропа — через явную карту** в `<script>`, а не склейкой имени
+  класса из строки:
+  ```ts
+  const cn = useCssModule('cn');
+
+  const variantClasses: Record<ButtonVariant, string | undefined> = {
+    large: cn.rootLarge,
+    small: cn.rootSmall,
+  };
+  ```
+  Так каждый класс находится поиском, а новое значение пропа TypeScript не даст забыть.
+- **Не обращайся к классам другого компонента:** они локальны для его модуля, а в production
+  это хэш. Родитель меняет вид дочернего компонента классом через `class` (он ложится на корень
+  дочернего), CSS-переменной, которую дочерний читает, или пропом.
+- **Классы, которые ставит TS-код** (composable, хелпер анимации), живут в `*.module.css` /
+  `*.module.scss` рядом с ним и импортируются как модуль: `import cn from './typo.module.css';`.
+- `@keyframes` в модуле тоже локальны, поэтому имена у них короткие и в camelCase: `enter`,
+  `leave`.
+- Порядок в модуле: сначала корень `.root` и его модификаторы, затем элементы, у каждого
+  модификаторы сразу после него.
+- **Цвета в компонентах — CSS-переменные**, не hex и не именованные цвета. Переменные цветов
+  объявлены в глобальной таблице стилей приложения (`src/style.css`); нужен новый цвет — добавь
+  переменную туда.
+
+**Чем ниже специфичность, тем лучше.** Селектор — один класс: `.qrCodeStub`, а не
+`.qrCode.stub` и не `.root .qrCode`; селекторы по тегу (`.root img`, `div`) тоже не пишутся.
+Модификатор перебивает базовый класс за счёт порядка, поэтому объявляй его после базового.
+Цепочки классов, вложенные селекторы и `!important` — только если без них никак; тогда оставь
+комментарий почему. Псевдоклассы и псевдоэлементы (`:hover`, `::after`) этим правилом не
+запрещены, и только их можно вкладывать через `&`.
+
+Имена классов CSS modules в dev выглядят как `ChatDoll__root_abcde`, в production — короткий
+хэш (`config/createCssModuleScopedName.ts` приложения).

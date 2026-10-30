@@ -1,4 +1,5 @@
 import { computed, onScopeDispose, ref, type Ref } from 'vue';
+
 import { FRAME_MS, type Direction, type Doll, type Frame } from './paperDoll';
 
 type State =
@@ -23,13 +24,13 @@ export function useWalker(doll: Doll, input: Ref<Direction | null>, width: Ref<n
   }
 
   function start(direction: Direction, frame: number) {
-    state.value = { kind: 'start', direction, frame };
+    state.value = { direction, frame, kind: 'start' };
     // Turns in place first, then speeds up to the walk
     move(direction, Math.round(doll.walkStep * frame / doll.start[direction].length));
   }
 
   function walk(direction: Direction, frame: number) {
-    state.value = { kind: 'walk', direction, frame };
+    state.value = { direction, frame, kind: 'walk' };
     move(direction, doll.walkStep);
   }
 
@@ -52,7 +53,7 @@ export function useWalker(doll: Doll, input: Ref<Direction | null>, width: Ref<n
     } else if (s.kind === 'walk') {
       // The turn picks up from the pose that ends the cycle, so the step plays out first
       if (s.frame + 1 < doll.walk[s.direction].length) walk(s.direction, s.frame + 1);
-      else state.value = { kind: 'turn', direction: s.direction, frame: 0 };
+      else state.value = { direction: s.direction, frame: 0, kind: 'turn' };
     } else if (s.kind === 'turn') {
       // Its last frame is the idle pose, which comes next anyway
       state.value = s.frame + 2 < doll.stop[s.direction].length
@@ -72,5 +73,5 @@ export function useWalker(doll: Doll, input: Ref<Direction | null>, width: Ref<n
     return doll.idle;
   });
 
-  return { x, frame };
+  return { frame, x };
 }

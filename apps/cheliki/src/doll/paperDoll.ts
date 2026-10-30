@@ -81,10 +81,10 @@ export function animation(
   boxY: number,
 ): Record<Direction, Frame[]> {
   const frames = Array.from({ length: count }, (_, i) => ({
-    src: `${name}/${drawn}/frame_${String(i).padStart(3, '0')}.png`,
-    mirrored: false,
-    height,
     boxY,
+    height,
+    mirrored: false,
+    src: `${name}/${drawn}/frame_${String(i).padStart(3, '0')}.png`,
   }));
   const mirrored = frames.map(frame => ({ ...frame, mirrored: true }));
   return drawn === 'east' ? { east: frames, west: mirrored } : { east: mirrored, west: frames };
@@ -100,7 +100,7 @@ export function frameLayers(doll: Doll, frame: Frame, look: Look): Layer[] {
   const parts = doll.slots.flatMap(slot => {
     const part = look[slot.key];
     if (!part) return [];
-    return [{ url: `${doll.url}/${slot.folder}/${part.name}/${frame.src}`, color: slot.tinted ? part.color : undefined }];
+    return [{ color: slot.tinted ? part.color : undefined, url: `${doll.url}/${slot.folder}/${part.name}/${frame.src}` }];
   });
   return [{ url: `${doll.url}/Idle/animations/${frame.src}` }, ...parts];
 }

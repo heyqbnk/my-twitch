@@ -1,4 +1,5 @@
 import { onScopeDispose, shallowRef, watch, type Ref } from 'vue';
+
 import * as bttv from '../twitch/bttv';
 import type { Emote, EmoteMap } from '../twitch/emotes';
 import * as seventv from '../twitch/seventv';

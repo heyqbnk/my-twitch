@@ -1,6 +1,7 @@
 import { inject, provide, watch, type InjectionKey, type Ref } from 'vue';
-import { expandEmotes, type Emote, type EmoteMap, type MessagePart } from '../twitch/emotes';
+
 import type { ChatMessage } from './useTwitchChat';
+import { expandEmotes, type Emote, type EmoteMap, type MessagePart } from '../twitch/emotes';
 
 type MessagePartsResolver = (msg: ChatMessage) => MessagePart[];
 
@@ -10,7 +11,7 @@ const KEY: InjectionKey<MessagePartsResolver> = Symbol('messageParts');
  * Прощание показываем эмодзи «bb»: канальным, если он есть в наборе, иначе этим из 7TV
  */
 const FAREWELL_EMOTE_NAME = 'bb';
-const FAREWELL_EMOTE: Emote = { provider: '7tv', id: '01FN1M3GQR00071FCSB63SB1P4', name: FAREWELL_EMOTE_NAME };
+const FAREWELL_EMOTE: Emote = { id: '01FN1M3GQR00071FCSB63SB1P4', name: FAREWELL_EMOTE_NAME, provider: '7tv' };
 
 /**
  * Эмодзи 7TV и BTTV подгружаются асинхронно, поэтому подставляем их при отрисовке,
@@ -26,7 +27,7 @@ export function provideMessageParts(emotes: Ref<EmoteMap>) {
     let parts = cache.get(msg);
     if (!parts) {
       parts = msg.farewell
-        ? [{ type: 'emote', emote: map.get(FAREWELL_EMOTE_NAME) ?? FAREWELL_EMOTE, overlays: [] }]
+        ? [{ emote: map.get(FAREWELL_EMOTE_NAME) ?? FAREWELL_EMOTE, overlays: [], type: 'emote' }]
         : expandEmotes(msg.parts, map);
       cache.set(msg, parts);
     }

@@ -1,6 +1,7 @@
 import { computed, inject, provide, type InjectionKey, type Ref } from 'vue';
-import { actorColor } from '../scene/actorStyle';
+
 import type { ChatMessage } from './useTwitchChat';
+import { actorColor } from '../scene/actorStyle';
 
 type MentionColorResolver = (name: string) => string;
 

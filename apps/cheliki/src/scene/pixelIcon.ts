@@ -22,7 +22,7 @@ export function pixelIcon(rows: string[]): PixelIcon {
     for (const match of row.matchAll(/#+/g)) d += `M${match.index} ${y}h${match[0].length}v1h-${match[0].length}z`;
   });
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" shape-rendering="crispEdges"><path d="${d}"/></svg>`;
-  return { mask: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`, width, height };
+  return { height, mask: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`, width };
 }
 
 /**

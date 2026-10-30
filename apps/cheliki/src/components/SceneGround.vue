@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue';
+
 import { DEFAULT_GROUND } from '../composables/useChannelQuery';
 
 /**
@@ -81,7 +82,7 @@ const tilePaths = computed(() => {
       start = x;
     }
   });
-  return [...paths].map(([fill, d]) => ({ fill, d }));
+  return [...paths].map(([fill, d]) => ({ d, fill }));
 });
 
 const patternId = useId();

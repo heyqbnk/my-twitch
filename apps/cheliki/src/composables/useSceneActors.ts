@@ -1,10 +1,11 @@
 import { computed, onScopeDispose, ref, watch, type Ref } from 'vue';
+
+import { shownAt, type ChatMessage } from './useTwitchChat';
 import { actorPriority } from '../scene/actorPriority';
 import { actorColor } from '../scene/actorStyle';
 import type { ChatRole } from '../twitch/badges';
-import { shownAt, type ChatMessage } from './useTwitchChat';
 
-const MAX_TIMEOUT = 2 ** 31 - 1;
+const MAX_TIMEOUT = (2 ** 31) - 1;
 
 export interface SceneActor {
   login: string;
@@ -61,12 +62,12 @@ export function useSceneActors(
         actor.lastMessage = msg;
       } else {
         actors.set(msg.login, {
-          login: msg.login,
-          name: msg.author,
-          role: msg.role,
-          priority: actorPriority(msg, followDates.value.get(msg.login)),
           color: actorColor(msg),
           lastMessage: msg,
+          login: msg.login,
+          name: msg.author,
+          priority: actorPriority(msg, followDates.value.get(msg.login)),
+          role: msg.role,
         });
       }
     }

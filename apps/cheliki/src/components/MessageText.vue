@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+
+import ChatEmote from './ChatEmote.vue';
 import { useMentionColor } from '../composables/useMentionColor';
 import { useMessageParts } from '../composables/useMessageParts';
 import type { ChatMessage } from '../composables/useTwitchChat';
 import { LINK_ICON } from '../scene/pixelIcon';
-import ChatEmote from './ChatEmote.vue';
 
 /**
  * stream — сообщение «печатается»: символ (эмодзи — целиком) раз в STREAM_CHAR_MS,
@@ -30,10 +31,10 @@ const split = (text: string) => Array.from(graphemes.segment(text), s => s.segme
  * эмодзи-последовательности не рвутся
  */
 const segments = computed(() => messageParts(props.message).map(part => {
-  if (part.type === 'text') return { part, chars: split(part.text) };
-  if (part.type === 'link') return { part, chars: split(part.domain) };
-  if (part.type === 'mention') return { part, chars: split(part.name) };
-  return { part, chars: null };
+  if (part.type === 'text') return { chars: split(part.text), part };
+  if (part.type === 'link') return { chars: split(part.domain), part };
+  if (part.type === 'mention') return { chars: split(part.name), part };
+  return { chars: null, part };
 }));
 const total = computed(() => segments.value
   .reduce((sum, { chars }) => sum + (chars ? chars.length : 1), 0));
@@ -72,15 +73,15 @@ const shown = computed(() => {
  */
 const pieces = computed(() => {
   let left = shown.value;
-  return segments.value.map(({ part, chars }) => {
+  return segments.value.map(({ chars, part }) => {
     const size = chars ? chars.length : 1;
     const visible = Math.max(0, Math.min(size, left));
     left -= size;
     return {
       part,
-      text: chars ? chars.slice(0, visible).join('') : '',
-      shown: visible > 0,
       pending: visible < size,
+      shown: visible > 0,
+      text: chars ? chars.slice(0, visible).join('') : '',
     };
   });
 });
@@ -101,20 +102,24 @@ const cursorAt = computed(() => {
       <template v-if="piece.part.type === 'emote'">
         <slot v-if="i === cursorAt" />
         <!-- Эмодзи проявляется, когда печать до него добралась -->
-        <Transition name="message-text__emote" :appear="stream">
+        <Transition
+          :enter-active-class="cn.emoteEnterActive"
+          :enter-from-class="cn.emoteEnterFrom"
+          :appear="stream"
+        >
           <ChatEmote v-if="piece.shown" :emote="piece.part.emote" :overlays="piece.part.overlays" />
         </Transition>
       </template>
       <!-- Домен ссылки печатается внутри своей плашки -->
       <template v-else-if="piece.part.type === 'link'">
-        <span v-if="piece.shown" class="message-text__link">{{ piece.text }}</span>
+        <span v-if="piece.shown" :class="[cn.link, cn.linkWithIcon]">{{ piece.text }}</span>
         <slot v-if="i === cursorAt" />
       </template>
       <!-- Упоминание — та же плашка, но без иконки и @, цвета упомянутого -->
       <template v-else-if="piece.part.type === 'mention'">
         <span
           v-if="piece.shown"
-          class="message-text__link message-text__mention"
+          :class="[cn.link, cn.linkMention]"
           :style="{ '--link': mentionColor(piece.part.name) }"
         >{{ piece.text }}</span>
         <slot v-if="i === cursorAt" />
@@ -126,13 +131,16 @@ const cursorAt = computed(() => {
     <!-- Невидимая копия всего сообщения нулевой высоты: облачко сразу принимает итоговую ширину,
          а по высоте растёт вместе с напечатанными строками. Стоит последней, чтобы не разрывать
          строку с префиксом ::before у корня -->
-    <span v-if="stream" class="message-text__ghost" aria-hidden="true">
+    <span v-if="stream" :class="cn.ghost" aria-hidden="true">
       <template v-for="(part, i) in messageParts(message)" :key="i">
         <ChatEmote v-if="part.type === 'emote'" :emote="part.emote" :overlays="part.overlays" />
-        <span v-else-if="part.type === 'link'" class="message-text__link">{{ part.domain }}</span>
+        <span
+          v-else-if="part.type === 'link'"
+          :class="[cn.link, cn.linkWithIcon]"
+        >{{ part.domain }}</span>
         <span
           v-else-if="part.type === 'mention'"
-          class="message-text__link message-text__mention"
+          :class="[cn.link, cn.linkMention]"
         >{{ part.name }}</span>
         <template v-else>{{ part.text }}</template>
       </template>
@@ -141,18 +149,18 @@ const cursorAt = computed(() => {
   </span>
 </template>
 
-<style scoped>
-.message-text__emote-enter-active {
+<style module="cn">
+.emoteEnterActive {
   transition: opacity 0.3s ease-out;
 }
 
-.message-text__emote-enter-from {
+.emoteEnterFrom {
   opacity: 0;
 }
 
 /* Домен всегда в нижнем регистре: плашка обрезается по высоте строчных букв (от x-высоты
    до базовой линии), и равные отступы сверху и снизу ставят буквы ровно посередине */
-.message-text__link {
+.link {
   display: inline-flex;
   align-items: center;
   padding-inline: 0.4em;
@@ -167,39 +175,40 @@ const cursorAt = computed(() => {
 /* Без text-box фон идёт от верха прописных до низа подстрочных: над строчными места больше,
    чем под ними, — добираем снизу примерно эту разницу */
 @supports not (text-box: trim-both ex alphabetic) {
-  .message-text__link {
+  .link {
     padding-block: 0.05em 0.25em;
   }
 }
 
 /* Ник пишется как угодно, с прописными: плашка обрезается по высоте прописных.
    Цвет --link — цвет упомянутого, задаётся на самой плашке */
-.message-text__mention {
+.linkMention {
   text-box: trim-both cap alphabetic;
 }
 
 /* Без text-box над прописными места примерно столько же, сколько под базовой линией */
 @supports not (text-box: trim-both cap alphabetic) {
-  .message-text__mention {
+  .linkMention {
     padding-block: 0.05em;
   }
 }
 
 /* Пиксельное звено цепи перед доменом — маской, чтобы красилось цветом ссылки.
    Пиксель иконки — как пиксель человечка: на сцене --ui — половина её масштаба */
-.message-text__link:not(.message-text__mention)::before {
+.linkWithIcon::before {
   --icon-px: calc(var(--ui, 1px) * 2);
+
   content: '';
   display: inline-block;
   width: calc(var(--icon-px) * v-bind('LINK_ICON.width') / 1.5);
   height: calc(var(--icon-px) * v-bind('LINK_ICON.height') / 1.5);
   margin-right: 0.25em;
   vertical-align: -0.05em;
-  background: currentColor;
+  background: currentcolor;
   mask: v-bind('LINK_ICON.mask') center / 100% 100% no-repeat;
 }
 
-.message-text__ghost {
+.ghost {
   display: block;
   height: 0;
   overflow: hidden;

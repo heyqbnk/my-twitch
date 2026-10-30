@@ -37,7 +37,7 @@ export function splitLinks(text: string): MessagePart[] {
   const pushText = (chunk: string) => {
     const last = parts.at(-1);
     if (last?.type === 'text') last.text += chunk;
-    else if (chunk) parts.push({ type: 'text', text: chunk });
+    else if (chunk) parts.push({ text: chunk, type: 'text' });
   };
 
   for (const token of text.split(/(\s+)/)) {
@@ -47,13 +47,13 @@ export function splitLinks(text: string): MessagePart[] {
       let cursor = 0;
       for (const match of token.matchAll(MENTION)) {
         pushText(token.slice(cursor, match.index));
-        parts.push({ type: 'mention', name: match[1]! });
+        parts.push({ name: match[1]!, type: 'mention' });
         cursor = match.index + match[0].length;
       }
       pushText(token.slice(cursor));
       continue;
     }
-    parts.push({ type: 'link', domain });
+    parts.push({ domain, type: 'link' });
     pushText(tail);
   }
 

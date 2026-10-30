@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+
+import ChatDoll from './ChatDoll.vue';
+import SceneGround from '../components/SceneGround.vue';
 import {
   useChannelQuery, useDelayQuery, useGroundQuery, useScaleQuery, useStayQuery,
 } from '../composables/useChannelQuery';
@@ -8,13 +11,11 @@ import { provideMentionColor } from '../composables/useMentionColor';
 import { provideMessageParts } from '../composables/useMessageParts';
 import { useSceneActors } from '../composables/useSceneActors';
 import { useThirdPartyEmotes } from '../composables/useThirdPartyEmotes';
-import SceneGround from '../components/SceneGround.vue';
 import { useTwitchChat } from '../composables/useTwitchChat';
 import { DOLL_64 } from '../doll/doll64';
 import { preload } from '../doll/paperDoll';
 import { useViewportWidth } from '../doll/useViewportWidth';
 import { needsFollowDate } from '../scene/actorPriority';
-import ChatDoll from './ChatDoll.vue';
 
 const DOLL = DOLL_64;
 

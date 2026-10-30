@@ -1,46 +1,71 @@
 import js from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
-import jsdoc from 'eslint-plugin-jsdoc';
-import pluginVue from 'eslint-plugin-vue';
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript';
 import { globalIgnores } from 'eslint/config';
+import compat from 'eslint-plugin-compat';
+import esX from 'eslint-plugin-es-x';
+import importX from 'eslint-plugin-import-x';
+import jsdoc from 'eslint-plugin-jsdoc';
+import perfectionist from 'eslint-plugin-perfectionist';
+import unicorn from 'eslint-plugin-unicorn';
+import pluginVue from 'eslint-plugin-vue';
 import globals from 'globals';
+
+/**
+ * Code that runs in the browser.
+ */
+const browserFiles = ['src/**/*.{ts,vue}'];
 
 export default defineConfigWithVueTs(
   globalIgnores(['dist/**', 'node_modules/**']),
-
   {
-    name: 'cheliki/files-to-lint',
     files: ['**/*.{ts,mts,tsx,vue}'],
+    name: 'app/files-to-lint',
   },
-
   js.configs.recommended,
   pluginVue.configs['flat/recommended'],
   vueTsConfigs.recommended,
-
-  stylistic.configs.customize({
-    indent: 2,
-    quotes: 'single',
-    semi: false,
-    commaDangle: 'always-multiline',
-    braceStyle: '1tbs',
-    arrowParens: true,
-    quoteProps: 'as-needed',
-  }),
-
   {
-    name: 'cheliki/stylistic-overrides',
+    files: ['**/*.vue'],
+    name: 'app/vue',
     rules: {
-      // #region stylistic
+      // Component styles are CSS modules only: `<style module="cn">`, never `scoped`.
+      'vue/enforce-style-attribute': ['error', { allow: ['module'] }],
+      'vue/html-self-closing': ['warn', { html: { void: 'any' } }],
+      // Templates stay compact, lines wrap by width.
+      'vue/max-attributes-per-line': 'off',
+      // Not needed with SFC + TypeScript: optional props (`variant?: string`) need no defaults.
+      'vue/require-default-prop': 'off',
+      'vue/singleline-html-element-content-newline': 'off',
+    },
+  },
+  {
+    ...compat.configs['flat/recommended'],
+    // Vite only lowers syntax and polyfills nothing, so APIs missing in the .browserslistrc
+    // targets are caught here. This rule checks web APIs (its JS API data is outdated, es-x
+    // covers that). A polyfilled API goes to `settings.polyfills`.
+    files: browserFiles,
+    name: 'app/browser-compat/web-apis',
+  },
+  {
+    ...esX.configs['flat/restrict-to-es2024'],
+    // ES2024 is the newest edition fully supported by .browserslistrc (Chrome 127).
+    // To use a newer API, add its polyfill and turn off its rule here.
+    files: browserFiles,
+    name: 'app/browser-compat/es-apis',
+  },
+  {
+    name: 'app/stylistic',
+    plugins: { '@stylistic': stylistic },
+    rules: {
       '@stylistic/array-bracket-newline': ['error', 'consistent'],
       '@stylistic/array-bracket-spacing': ['error', 'never'],
-      '@stylistic/array-element-newline': ['error', 'consistent'],
       '@stylistic/arrow-parens': ['error', 'as-needed'],
-      '@stylistic/arrow-spacing': ['error', { before: true, after: true }],
+      '@stylistic/arrow-spacing': ['error', { after: true, before: true }],
       '@stylistic/block-spacing': ['error', 'always'],
       '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: false }],
       '@stylistic/comma-dangle': ['error', 'always-multiline'],
-      '@stylistic/comma-spacing': ['error', { before: false, after: true }],
+      '@stylistic/comma-spacing': ['error', { after: true, before: false }],
       '@stylistic/comma-style': ['error', 'last'],
       '@stylistic/computed-property-spacing': ['error', 'never'],
       '@stylistic/curly-newline': ['error', 'always'],
@@ -49,32 +74,29 @@ export default defineConfigWithVueTs(
       '@stylistic/function-call-argument-newline': ['error', 'consistent'],
       '@stylistic/function-call-spacing': ['error', 'never'],
       '@stylistic/function-paren-newline': ['error', 'consistent'],
-      '@stylistic/generator-star-spacing': ['error', { before: false, after: true }],
+      '@stylistic/generator-star-spacing': ['error', { after: true, before: false }],
       '@stylistic/implicit-arrow-linebreak': ['error', 'beside'],
       '@stylistic/indent': ['error', 2],
       '@stylistic/indent-binary-ops': ['error', 2],
-      '@stylistic/key-spacing': ['error', { beforeColon: false, afterColon: true, mode: 'strict' }],
-      '@stylistic/keyword-spacing': ['error', { before: true, after: true }],
+      '@stylistic/key-spacing': ['error', { afterColon: true, beforeColon: false, mode: 'strict' }],
+      '@stylistic/keyword-spacing': ['error', { after: true, before: true }],
       '@stylistic/line-comment-position': ['error', { position: 'above' }],
       '@stylistic/linebreak-style': ['error', 'unix'],
-      // '@stylistic/lines-around-comment': ['error', {}],
       '@stylistic/lines-between-class-members': ['error', {
         enforce: [
-          { blankLine: 'always', prev: '*', next: 'field' },
-          { blankLine: 'always', prev: 'field', next: 'field' },
-          { blankLine: 'always', prev: 'field', next: 'method' },
-          { blankLine: 'always', prev: 'method', next: 'method' },
+          { blankLine: 'always', next: 'method', prev: 'field' },
+          { blankLine: 'always', next: 'method', prev: 'method' },
         ],
       }],
       '@stylistic/max-len': ['warn', {
         code: 100,
-        tabWidth: 2,
         ignoreComments: true,
-        ignoreTrailingComments: true,
-        ignoreUrls: true,
+        ignoreRegExpLiterals: true,
         ignoreStrings: true,
         ignoreTemplateLiterals: true,
-        ignoreRegExpLiterals: true,
+        ignoreTrailingComments: true,
+        ignoreUrls: true,
+        tabWidth: 2,
       }],
       '@stylistic/max-statements-per-line': ['error', { max: 1 }],
       '@stylistic/member-delimiter-style': ['error', {
@@ -82,30 +104,30 @@ export default defineConfigWithVueTs(
           delimiter: 'semi',
           requireLast: true,
         },
+        multilineDetection: 'brackets',
         singleline: {
           delimiter: 'semi',
           requireLast: false,
         },
-        multilineDetection: 'brackets',
       }],
       '@stylistic/multiline-ternary': ['error', 'always-multiline'],
       '@stylistic/new-parens': ['error', 'always'],
-      '@stylistic/newline-per-chained-call': ['error', { ignoreChainWithDepth: 2 }],
+      '@stylistic/newline-per-chained-call': 'off',
       '@stylistic/no-confusing-arrow': 'error',
-      '@stylistic/no-extra-parens': 0,
+      '@stylistic/no-extra-parens': 'off',
       '@stylistic/no-extra-semi': 'error',
       '@stylistic/no-floating-decimal': 'error',
       '@stylistic/no-mixed-operators': 'error',
       '@stylistic/no-mixed-spaces-and-tabs': 'error',
       '@stylistic/no-multi-spaces': 'error',
-      '@stylistic/no-multiple-empty-lines': ['error', { max: 1, maxEOF: 1, maxBOF: 0 }],
+      '@stylistic/no-multiple-empty-lines': ['error', { max: 1, maxBOF: 0, maxEOF: 1 }],
       '@stylistic/no-tabs': 'error',
       '@stylistic/no-trailing-spaces': 'error',
       '@stylistic/no-whitespace-before-property': 'error',
       '@stylistic/nonblock-statement-body-position': ['error', 'beside'],
       '@stylistic/object-curly-newline': ['error', {
-        multiline: true,
         consistent: true,
+        multiline: true,
       }],
       '@stylistic/object-curly-spacing': ['error', 'always'],
       '@stylistic/object-property-newline': ['error', { allowAllPropertiesOnSameLine: true }],
@@ -118,54 +140,81 @@ export default defineConfigWithVueTs(
       '@stylistic/padded-blocks': ['error', 'never'],
       '@stylistic/padding-line-between-statements': [
         'error',
-        { blankLine: 'always', prev: 'directive', next: '*' },
-        { blankLine: 'any', prev: 'directive', next: 'directive' },
-        { blankLine: 'never', prev: ['case', 'default'], next: '*' },
+        { blankLine: 'always', next: '*', prev: 'directive' },
+        { blankLine: 'any', next: 'directive', prev: 'directive' },
+        { blankLine: 'never', next: '*', prev: ['case', 'default'] },
       ],
       '@stylistic/quote-props': ['error', 'as-needed'],
       '@stylistic/quotes': ['error', 'single', { avoidEscape: true }],
       '@stylistic/rest-spread-spacing': ['error', 'never'],
       '@stylistic/semi': ['error', 'always'],
-      '@stylistic/semi-spacing': ['error', { before: false, after: true }],
+      '@stylistic/semi-spacing': ['error', { after: true, before: false }],
       '@stylistic/semi-style': ['error', 'last'],
       '@stylistic/space-before-blocks': ['error', 'always'],
       '@stylistic/space-before-function-paren': ['error', {
         anonymous: 'never',
-        named: 'never',
         asyncArrow: 'always',
-        catch: 'always',
+        named: 'never',
       }],
       '@stylistic/space-in-parens': ['error', 'never'],
       '@stylistic/space-infix-ops': 'error',
-      '@stylistic/space-unary-ops': ['error', { words: true, nonwords: false }],
+      '@stylistic/space-unary-ops': ['error', { nonwords: false, words: true }],
       '@stylistic/spaced-comment': ['error', 'always', {
-        // Code wrapping.
         markers: ['#region', '#endregion'],
       }],
-      '@stylistic/switch-colon-spacing': ['error', { before: false, after: true }],
+      '@stylistic/switch-colon-spacing': ['error', { after: true, before: false }],
       '@stylistic/template-curly-spacing': ['error', 'never'],
       '@stylistic/template-tag-spacing': ['error', 'never'],
-      '@stylistic/type-annotation-spacing': ['error'],
-      '@stylistic/type-generic-spacing': ['error'],
-      '@stylistic/type-named-tuple-spacing': ['error'],
+      '@stylistic/type-annotation-spacing': 'error',
+      '@stylistic/type-generic-spacing': 'error',
+      '@stylistic/type-named-tuple-spacing': 'error',
       '@stylistic/wrap-iife': ['error', 'inside'],
-      '@stylistic/yield-star-spacing': ['error', { before: false, after: true }],
-      // #endregion
-
-      // шаблоны держим компактными, переносы по ширине строки
-      'vue/max-attributes-per-line': 'off',
-      'vue/singleline-html-element-content-newline': 'off',
-      'vue/html-self-closing': ['warn', { html: { void: 'any' } }],
-      // own classes live in CSS modules: <style module="cn">
-      'vue/enforce-style-attribute': ['error', { allow: ['module'] }],
+      '@stylistic/yield-star-spacing': ['error', { after: true, before: false }],
     },
   },
-
   {
-    name: 'cheliki/jsdoc',
+    name: 'app/import',
+    plugins: { import: importX, unicorn },
+    rules: {
+      'import/no-empty-named-blocks': 'error',
+      'import/no-relative-packages': 'error',
+      'import/no-useless-path-segments': 'error',
+      'import/order': ['error', {
+        alphabetize: {
+          caseInsensitive: false,
+          order: 'asc',
+        },
+        groups: [
+          ['builtin', 'external'],
+          'internal',
+          'unknown',
+          ['parent', 'sibling', 'index'],
+          ['object'],
+        ],
+        'newlines-between': 'always-and-inside-groups',
+        pathGroups: [{ group: 'internal', pattern: '{@,~,#}/**', position: 'after' }],
+      }],
+      // import-x has no `enforce-node-protocol-usage`.
+      'unicorn/prefer-node-protocol': 'error',
+    },
+  },
+  {
+    name: 'app/sort-objects',
+    plugins: { perfectionist },
+    rules: {
+      // Object keys go in alphabetical order. A blank line starts a new group sorted on its own,
+      // so keys can still be grouped by meaning. Comments move together with their keys.
+      'perfectionist/sort-objects': ['error', {
+        partitionByNewLine: true,
+        type: 'alphabetical',
+      }],
+    },
+  },
+  {
+    name: 'app/jsdoc',
     plugins: { jsdoc },
     rules: {
-      // descriptions of declarations are JSDoc, not // comments: the IDE shows them on hover
+      // Descriptions of declarations are JSDoc, not `//` comments: the IDE shows them on hover.
       'jsdoc/convert-to-jsdoc-comments': ['error', {
         contexts: [
           'ArrowFunctionExpression',
@@ -176,21 +225,20 @@ export default defineConfigWithVueTs(
           'TSTypeAliasDeclaration',
           'TSInterfaceDeclaration',
           'TSEnumDeclaration',
-          // arrow and function expressions are already covered above
+          // Arrow and function expressions are already covered above.
           'Program > VariableDeclaration:not([declarations.0.init.type=/FunctionExpression$/])',
           'ExportNamedDeclaration[declaration.type="VariableDeclaration"]:not([declaration.declarations.0.init.type=/FunctionExpression$/])',
         ],
-        // module-level variables are covered by contexts; locals keep plain comments
+        // Module-level variables are covered by contexts; locals keep plain comments.
         contextsBeforeAndAfter: ['TSPropertySignature', 'PropertyDefinition'],
       }],
     },
   },
-
   {
-    name: 'cheliki/node-scripts',
-    files: ['vite.config.ts', 'eslint.config.ts'],
+    files: ['*.config.ts', 'config/**/*.ts', 'scripts/**/*.{js,mjs}'],
     languageOptions: {
       globals: globals.node,
     },
+    name: 'app/node-scripts',
   },
 );

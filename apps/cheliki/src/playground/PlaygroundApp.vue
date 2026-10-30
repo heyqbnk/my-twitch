@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+
+import LookEditor from './LookEditor.vue';
+import PlaygroundCard from './PlaygroundCard.vue';
+import controls from './controls.module.css';
+import { randomDude, randomMessage, usePlayground, withNickColor } from './usePlayground';
 import MessageText from '../components/MessageText.vue';
 import SceneGround from '../components/SceneGround.vue';
 import { DEFAULT_GROUND, DEFAULT_SCALE } from '../composables/useChannelQuery';
@@ -7,16 +12,12 @@ import { provideMentionColor } from '../composables/useMentionColor';
 import { provideMessageParts } from '../composables/useMessageParts';
 import { useSceneActors, type SceneActor } from '../composables/useSceneActors';
 import { useThirdPartyEmotes } from '../composables/useThirdPartyEmotes';
-import ChatDoll from '../doll-chat/ChatDoll.vue';
 import { preload, type Doll } from '../doll/paperDoll';
 import { useViewportWidth } from '../doll/useViewportWidth';
+import ChatDoll from '../doll-chat/ChatDoll.vue';
 import { actorColor } from '../scene/actorStyle';
 import type { ChatRole } from '../twitch/badges';
 import { fetchUserId } from '../twitch/ivr';
-import controls from './controls.module.css';
-import LookEditor from './LookEditor.vue';
-import PlaygroundCard from './PlaygroundCard.vue';
-import { randomDude, randomMessage, usePlayground, withNickColor } from './usePlayground';
 
 const props = defineProps<{ doll: Doll }>();
 
@@ -41,12 +42,12 @@ interface Settings {
 
 function loadSettings(): Settings {
   const defaults: Settings = {
-    scale: DEFAULT_SCALE,
-    ground: DEFAULT_GROUND,
-    stay: null,
-    delay: 0,
     background: '#5c94fc',
+    delay: 0,
     emoteChannel: '',
+    ground: DEFAULT_GROUND,
+    scale: DEFAULT_SCALE,
+    stay: null,
   };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
@@ -65,8 +66,8 @@ watch(settings, value => {
 }, { deep: true });
 
 const {
-  dudes, messages, queued, followDates, lastMessageOf,
-  send, deleteMessage, timeout, clearChat, addDude, removeDude, renameDude,
+  addDude, clearChat, deleteMessage, dudes, followDates,
+  lastMessageOf, messages, queued, removeDude, renameDude, send, timeout,
 } = usePlayground(props.doll, computed(() => settings.value.delay * 1000));
 
 /**
@@ -139,8 +140,8 @@ const replyTo = ref<string | null>(null);
 function say(message = text.value) {
   if (!selected.value) return;
   send(selected.value.login, message, {
-    highlighted: highlighted.value,
     firstMessage: firstMessage.value,
+    highlighted: highlighted.value,
     replyTo: replyTo.value,
   });
   if (message === text.value) text.value = '';
@@ -172,10 +173,10 @@ function deleteLast() {
 }
 
 const ROLES: { value: ChatRole | undefined; label: string }[] = [
-  { value: undefined, label: 'зритель' },
-  { value: 'vip', label: 'VIP' },
-  { value: 'moderator', label: 'модератор' },
-  { value: 'broadcaster', label: 'владелец' },
+  { label: 'зритель', value: undefined },
+  { label: 'VIP', value: 'vip' },
+  { label: 'модератор', value: 'moderator' },
+  { label: 'владелец', value: 'broadcaster' },
 ];
 const ROLE_ICONS: Record<ChatRole, string> = { broadcaster: '👑', moderator: '⚔️', vip: '💎' };
 

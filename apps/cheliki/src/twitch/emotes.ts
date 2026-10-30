@@ -43,7 +43,7 @@ function parseEmotesTag(tag: string): EmoteRange[] {
     if (!id || !positions) continue;
     for (const pos of positions.split(',')) {
       const [start, end] = pos.split('-').map(Number);
-      if (Number.isInteger(start) && Number.isInteger(end)) ranges.push({ id, start, end });
+      if (Number.isInteger(start) && Number.isInteger(end)) ranges.push({ end, id, start });
     }
   }
   return ranges.sort((a, b) => a.start - b.start);
@@ -59,11 +59,11 @@ export function splitMessage(text: string, emotesTag: string | undefined): Messa
   const parts: MessagePart[] = [];
   let cursor = 0;
 
-  for (const { id, start, end } of parseEmotesTag(emotesTag)) {
+  for (const { end, id, start } of parseEmotesTag(emotesTag)) {
     if (start < cursor || end >= chars.length) continue;
     if (start > cursor) parts.push(...splitLinks(chars.slice(cursor, start).join('')));
     const name = chars.slice(start, end + 1).join('');
-    parts.push({ type: 'emote', emote: { provider: 'twitch', id, name }, overlays: [] });
+    parts.push({ emote: { id, name, provider: 'twitch' }, overlays: [], type: 'emote' });
     cursor = end + 1;
   }
   if (cursor < chars.length) parts.push(...splitLinks(chars.slice(cursor).join('')));
@@ -82,7 +82,7 @@ export function expandEmotes(parts: MessagePart[], emotes: EmoteMap): MessagePar
   const pushText = (text: string) => {
     const last = out.at(-1);
     if (last?.type === 'text') last.text += text;
-    else out.push({ type: 'text', text });
+    else out.push({ text, type: 'text' });
   };
 
   /**
@@ -113,7 +113,7 @@ export function expandEmotes(parts: MessagePart[], emotes: EmoteMap): MessagePar
       const emote = emotes.get(token);
       if (!emote) pushText(token);
       else if (!(emote.zeroWidth && attachOverlay(emote))) {
-        out.push({ type: 'emote', emote, overlays: [] });
+        out.push({ emote, overlays: [], type: 'emote' });
       }
     }
   }

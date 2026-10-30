@@ -12,7 +12,7 @@
 ## Где работает
 
 Сцена делается для browser source в OBS. Минимальная версия браузера — Chromium 127 (CEF в
-OBS 32.2): она указана в `browserslist` в `package.json` и в `build.target` в `vite.config.ts`.
+OBS 32.2): она указана в `.browserslistrc`, из него же выводится `build.target` сборки.
 Перемены в анимациях и стилях проверяй в самом OBS — встроенный Chromium иногда ведёт себя иначе,
 чем Chrome.
 
