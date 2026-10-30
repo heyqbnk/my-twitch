@@ -20,19 +20,21 @@ const PREVIEW_PAGE = `<!doctype html>
 </script>
 `;
 
-// В dev-режиме перегенерирует спрайты человечка и SVG-превью для ревью при старте и после правки генератора.
-// Превью с HMR — /walker-preview, сам SVG — /walker-preview.svg
+// In dev mode regenerates the dude sprites and the SVG review preview on start and after the generator
+// or sprites/*.aseprite change. The preview with HMR is /walker-preview, the SVG itself — /walker-preview.svg
 function walkerSprites(): Plugin {
   const script = resolve('scripts/generate-walker.mjs');
+  const sources = [script, resolve('scripts/aseprite.mjs')];
+  const sprites = resolve('sprites');
   const generate = () => promisify(execFile)(process.execPath, [script, 'src/scene/walkerSprite.ts', 'walker-preview.svg']);
   return {
     name: 'walker-sprites',
     apply: 'serve',
     async configureServer(server) {
       await generate();
-      server.watcher.add(script);
+      server.watcher.add([...sources, sprites]);
       server.watcher.on('change', file => {
-        if (file !== script) return;
+        if (!sources.includes(file) && !(file.startsWith(sprites) && file.endsWith('.aseprite'))) return;
         generate().then(
           () => {
             server.ws.send({ type: 'custom', event: 'walker:update' });

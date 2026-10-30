@@ -1,0 +1,45 @@
+/* Form controls of the playground panel, shared by its components */
+
+.input {
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid rgb(82 82 82);
+  border-radius: 4px;
+  background: rgb(38 38 38);
+  color: inherit;
+}
+
+.button {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgb(64 64 64);
+  color: inherit;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: rgb(82 82 82);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.color {
+  flex-shrink: 0;
+  width: 36px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgb(82 82 82);
+  background: none;
+}
+
+.color:disabled {
+  opacity: 0.4;
+}
+
+/* Takes the rest of a flex row */
+.inputGrow {
+  flex: 1;
+}

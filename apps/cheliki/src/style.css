@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --first-msg: #9147ff;
+  --highlight: #f59e0b;
+  --link: #0284c7;
+
+  /* Тёмная обводка ников и значков: оверлей прозрачный и лежит поверх стрима,
+     так что фон под ником может быть любым. Одна и та же в светлой и тёмной теме */
+  --outline-color: rgb(0 0 0 / 80%);
+  --outline-width: 1px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 16px/145% var(--sans);
+  color-scheme: light dark;
+  color: var(--text);
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* var() в кастомном свойстве подставляется там, где оно объявлено: чтобы обводка
+   следовала за --outline-width, переопределённой ниже по дереву, элемент с новой
+   шириной должен объявить обводки заново — классом outline-scope */
+:root,
+.outline-scope {
+  /* Тени и по диагоналям: контур сплошной, без просветов на скруглениях букв */
+  --text-outline:
+    var(--outline-width) 0 var(--outline-color),
+    calc(-1 * var(--outline-width)) 0 var(--outline-color),
+    0 var(--outline-width) var(--outline-color),
+    0 calc(-1 * var(--outline-width)) var(--outline-color),
+    var(--outline-width) var(--outline-width) var(--outline-color),
+    calc(-1 * var(--outline-width)) var(--outline-width) var(--outline-color),
+    var(--outline-width) calc(-1 * var(--outline-width)) var(--outline-color),
+    calc(-1 * var(--outline-width)) calc(-1 * var(--outline-width)) var(--outline-color);
+  /* Двойная тень: одна мягкая тень на 1px у значка слишком бледная */
+  --icon-outline:
+    drop-shadow(0 0 var(--outline-width) rgb(0 0 0 / 90%))
+    drop-shadow(0 0 var(--outline-width) rgb(0 0 0 / 90%));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --first-msg: #a970ff;
+    --highlight: #fbbf24;
+    --link: #38bdf8;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: 'SF Pro', sans-serif;
+}
+
+code {
+  font-family: var(--mono);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-h);
+  background: var(--code-bg);
+}
