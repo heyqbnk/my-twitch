@@ -3,4 +3,5 @@
  */
 export enum PageNames {
   Home = 'home',
+  TwitchChatWidget = 'twitch-chat-widget',
 }

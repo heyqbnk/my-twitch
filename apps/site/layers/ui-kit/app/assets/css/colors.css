@@ -6,4 +6,9 @@
   --accent-contrast-color: oklch(100% 0 0deg);
   --secondary-fill-color: oklch(96.7% 0.003 264.542deg);
   --secondary-fill-pressed-color: oklch(92.8% 0.006 264.531deg);
+  --chat-text-color: oklch(100% 0 0deg);
+  --chat-text-shadow-color: oklch(0% 0 0deg / 80%);
+  --chat-default-author-color: oklch(71.4% 0.203 305.504deg);
+  --chat-shimmer-color: oklch(100% 0 0deg / 15%);
+  --chat-shimmer-highlight-color: oklch(100% 0 0deg / 40%);
 }
