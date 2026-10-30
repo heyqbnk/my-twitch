@@ -1,4 +1,5 @@
 import { onScopeDispose, ref, watch, type Ref } from 'vue';
+
 import type { Direction, Doll } from './paperDoll';
 import { useWalker } from './useWalker';
 
@@ -12,7 +13,7 @@ const MAX_REST = 6000;
  */
 export function useWanderer(doll: Doll, width: Ref<number>) {
   const direction = ref<Direction | null>(null);
-  const { x, frame } = useWalker(doll, direction, width);
+  const { frame, x } = useWalker(doll, direction, width);
 
   const randomX = () => Math.floor(Math.random() * Math.max(0, width.value - doll.size));
   x.value = randomX();
@@ -22,7 +23,7 @@ export function useWanderer(doll: Doll, width: Ref<number>) {
 
   function rest() {
     direction.value = null;
-    timer = setTimeout(walk, MIN_REST + Math.random() * (MAX_REST - MIN_REST));
+    timer = setTimeout(walk, MIN_REST + (Math.random() * (MAX_REST - MIN_REST)));
   }
 
   function walk() {
@@ -41,5 +42,5 @@ export function useWanderer(doll: Doll, width: Ref<number>) {
 
   rest();
   onScopeDispose(() => clearTimeout(timer));
-  return { x, frame };
+  return { frame, x };
 }

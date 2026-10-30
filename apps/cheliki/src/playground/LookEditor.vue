@@ -1,24 +1,25 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { dollLook } from '../doll-chat/dollLook';
-import DollSprite from '../doll/DollSprite.vue';
-import type { Doll, Look, Slot } from '../doll/paperDoll';
-import { actorColor } from '../scene/actorStyle';
+
 import controls from './controls.module.css';
 import { randomUserId, withNickColor, type Dude } from './usePlayground';
+import DollSprite from '../doll/DollSprite.vue';
+import type { Doll, Look, Slot } from '../doll/paperDoll';
+import { dollLook } from '../doll-chat/dollLook';
+import { actorColor } from '../scene/actorStyle';
 
 const props = defineProps<{ doll: Doll; dude: Dude }>();
 
 const SLOT_LABELS: Record<string, string> = {
+  eyes: 'Глаза',
+  eyewear: 'Очки',
+  hair: 'Волосы',
+  headwear: 'Голова',
+  mouth: 'Во рту',
+  neck: 'Шея',
   pants: 'Штаны',
   shoes: 'Обувь',
   top: 'Верх',
-  eyes: 'Глаза',
-  hair: 'Волосы',
-  neck: 'Шея',
-  mouth: 'Во рту',
-  eyewear: 'Очки',
-  headwear: 'Голова',
 };
 const DEFAULT_COLOR = '#808080';
 
@@ -51,7 +52,7 @@ function reroll() {
 function setName(slot: Slot, name: string) {
   edit(l => {
     const color = l[slot.key]?.color ?? slot.palette?.[0] ?? DEFAULT_COLOR;
-    l[slot.key] = name ? { name, color } : null;
+    l[slot.key] = name ? { color, name } : null;
   });
 }
 
@@ -141,6 +142,6 @@ const toHex = (color?: string) => (color && /^#[0-9a-f]{6}$/i.test(color) ? colo
 }
 
 .swatchActive {
-  outline: 2px solid white;
+  outline: 2px solid var(--white);
 }
 </style>

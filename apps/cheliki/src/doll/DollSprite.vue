@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef, watchEffect } from 'vue';
+
 import { frameLayers, loadImage, type Doll, type Frame, type Look } from './paperDoll';
 
 /**

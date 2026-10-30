@@ -1,30 +1,27 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
 node_modules
 dist
 dist-ssr
+build
+coverage
+.turbo
+.env
+.env*.local
 *.local
+*.log
+.DS_Store
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Превью спрайтов для ревью (в apps/dudes: node scripts/generate-walker.mjs src/scene/walkerSprite.ts walker-preview.svg)
-walker-preview.*
+# Local agent configs, may hold tokens
+.codex
 
-# Turborepo
-.turbo
+# Sprite previews for review (apps/dudes: pnpm --filter dudes sprites)
+walker-preview.*

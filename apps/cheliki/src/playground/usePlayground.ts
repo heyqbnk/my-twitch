@@ -1,4 +1,5 @@
 import { computed, onScopeDispose, ref, watch, type Ref } from 'vue';
+
 import { toChatMessage, type ChatMessage } from '../composables/useTwitchChat';
 import type { Doll, Look } from '../doll/paperDoll';
 import type { ChatRole } from '../twitch/badges';
@@ -49,14 +50,14 @@ const NICK_COLORS = ['#ff0000', '#0000ff', '#008000', '#b22222', '#ff7f50', '#9a
 
 export function randomDude(login = randomLogin()): Dude {
   return {
-    login,
-    name: login,
-    userId: randomUserId(),
-    color: Math.random() < 0.8 ? pick(NICK_COLORS) : null,
-    subMonths: 0,
-    followDays: null,
     bot: false,
+    color: Math.random() < 0.8 ? pick(NICK_COLORS) : null,
+    followDays: null,
+    login,
     look: null,
+    name: login,
+    subMonths: 0,
+    userId: randomUserId(),
   };
 }
 
@@ -106,11 +107,11 @@ function loadDudes(doll: Doll): Dude[] {
     // No storage or broken data: start over
   }
   return [
-    { ...randomDude('streamer'), role: 'broadcaster', color: '#9146ff' },
+    { ...randomDude('streamer'), color: '#9146ff', role: 'broadcaster' },
     randomDude('viewer'),
     // Has noPants and noShoes in userFeatures.json
     { ...randomDude('sarorn'), subMonths: 12 },
-    { ...randomDude('nightbot'), bot: true, role: 'moderator', color: '#7c7cff' },
+    { ...randomDude('nightbot'), bot: true, color: '#7c7cff', role: 'moderator' },
   ];
 }
 
@@ -122,8 +123,8 @@ function badgesOf(dude: Dude): { badges: string; badgeInfo: string } {
     dude.bot && 'bot-badge/1',
   ].filter(Boolean);
   return {
-    badges: badges.join(','),
     badgeInfo: dude.subMonths > 0 ? `subscriber/${dude.subMonths}` : '',
+    badges: badges.join(','),
   };
 }
 
@@ -165,15 +166,15 @@ export function usePlayground(doll: Doll, delay: Ref<number>) {
   function send(login: string, text: string, options: SendOptions = {}) {
     const dude = find(login);
     if (!dude || !text.trim()) return;
-    const { badges, badgeInfo } = badgesOf(dude);
+    const { badgeInfo, badges } = badgesOf(dude);
     const tags: Record<string, string> = {
-      id: crypto.randomUUID(),
-      'user-id': dude.userId,
-      'display-name': dude.name,
-      color: dude.color ?? '',
-      'tmi-sent-ts': String(Date.now()),
-      badges,
       'badge-info': badgeInfo,
+      badges,
+      color: dude.color ?? '',
+      'display-name': dude.name,
+      id: crypto.randomUUID(),
+      'tmi-sent-ts': String(Date.now()),
+      'user-id': dude.userId,
     };
     if (options.highlighted) tags['msg-id'] = 'highlighted-message';
     if (options.firstMessage) tags['first-msg'] = '1';
@@ -189,10 +190,10 @@ export function usePlayground(doll: Doll, delay: Ref<number>) {
       }
     }
     const message = toChatMessage({
-      tags,
-      prefix: `${dude.login}!${dude.login}@${dude.login}.tmi.twitch.tv`,
       command: 'PRIVMSG',
       params: ['#playground', text],
+      prefix: `${dude.login}!${dude.login}@${dude.login}.tmi.twitch.tv`,
+      tags,
     });
     if (delay.value <= 0) return add(message);
     const timer = setTimeout(() => {
@@ -243,24 +244,24 @@ export function usePlayground(doll: Doll, delay: Ref<number>) {
     const now = Date.now();
     return new Map(dudes.value.map(d => [
       d.login,
-      d.bot || d.followDays === null ? null : now - d.followDays * DAY,
+      d.bot || d.followDays === null ? null : now - (d.followDays * DAY),
     ]));
   });
 
   onScopeDispose(() => queued.value.forEach(q => clearTimeout(q.timer)));
 
   return {
+    addDude,
+    clearChat,
+    deleteMessage,
     dudes,
+    followDates,
+    lastMessageOf,
     messages,
     queued: computed(() => queued.value.map(q => q.message)),
-    followDates,
-    send,
-    deleteMessage,
-    timeout,
-    clearChat,
-    addDude,
     removeDude,
     renameDude,
-    lastMessageOf,
+    send,
+    timeout,
   };
 }

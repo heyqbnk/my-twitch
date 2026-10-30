@@ -22,7 +22,7 @@ interface SevenTvEmoteSet {
 function toEmote(e: SevenTvEmote): Emote {
   const zeroWidth = (e.flags & ACTIVE_ZERO_WIDTH) !== 0
     || ((e.data?.flags ?? 0) & DATA_ZERO_WIDTH) !== 0;
-  return { provider: '7tv', id: e.id, name: e.name, zeroWidth };
+  return { id: e.id, name: e.name, provider: '7tv', zeroWidth };
 }
 
 export const fetchGlobalEmotes = cachedOnce(async () => {

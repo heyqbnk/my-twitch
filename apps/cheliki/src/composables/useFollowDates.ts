@@ -1,4 +1,5 @@
 import { onScopeDispose, shallowRef, watch, type Ref } from 'vue';
+
 import { fetchFollowedAt } from '../twitch/ivr';
 
 /**

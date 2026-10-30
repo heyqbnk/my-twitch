@@ -1,14 +1,14 @@
-import { resolve } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
+import browserslistToEsbuild from 'browserslist-to-esbuild';
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
+import { createCssModuleScopedName } from './config/createCssModuleScopedName.ts';
+
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [vue(), tailwindcss()],
+export default defineConfig(({ command }) => ({
   build: {
-    // OBS browser source runs Chromium 127 (CEF in OBS 32), the same floor as `browserslist` in package.json
-    target: 'chrome127',
     rolldownOptions: {
       // Real chat — /, a sandbox with made-up viewers — /playground.html
       input: {
@@ -16,5 +16,16 @@ export default defineConfig({
         playground: resolve('playground.html'),
       },
     },
+    // Resolved from .browserslistrc.
+    target: browserslistToEsbuild(undefined, { path: import.meta.dirname }),
   },
-});
+  css: {
+    modules: {
+      generateScopedName: createCssModuleScopedName({
+        rootDir: import.meta.dirname,
+        withComponentName: command === 'serve',
+      }),
+    },
+  },
+  plugins: [vue(), tailwindcss()],
+}));

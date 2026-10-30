@@ -18,7 +18,7 @@ export interface LookSeed {
 }
 
 export function lookSeed(actor: SceneActor): LookSeed {
-  return { login: actor.login, userId: actor.lastMessage.userId, color: actor.color };
+  return { color: actor.color, login: actor.login, userId: actor.lastMessage.userId };
 }
 
 /**
@@ -41,6 +41,6 @@ export function dollLook(doll: Doll, actor: LookSeed): Look {
     if (slot.key === 'top') color = actor.color;
     else if (slot.key === 'pants') color = pick(PANTS_COLORS[name] ?? PANTS_COLORS.jeans!, 0x5bd1e995);
     else if (slot.palette) color = pick(slot.palette, 0xc2b2ae35);
-    return [slot.key, { name, color }];
+    return [slot.key, { color, name }];
   }));
 }

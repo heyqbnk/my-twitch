@@ -19,7 +19,7 @@ interface BttvEmote {
 function toEmotes(list: BttvEmote[]): Emote[] {
   return list
     .filter(e => !e.modifier)
-    .map(e => ({ provider: 'bttv', id: e.id, name: e.code, zeroWidth: ZERO_WIDTH.has(e.code) }));
+    .map(e => ({ id: e.id, name: e.code, provider: 'bttv', zeroWidth: ZERO_WIDTH.has(e.code) }));
 }
 
 export const fetchGlobalEmotes = cachedOnce(async () => {

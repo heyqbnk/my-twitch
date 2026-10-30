@@ -3,7 +3,7 @@ import type { ChatMessage } from '../composables/useTwitchChat';
 /**
  * Ступени старшинства, от младшей: зритель, фолловер, подписчик, VIP, модератор, владелец канала
  */
-const TIER = { viewer: 0, follower: 1, subscriber: 2, vip: 3, moderator: 4, broadcaster: 5 };
+const TIER = { broadcaster: 5, follower: 1, moderator: 4, subscriber: 2, viewer: 0, vip: 3 };
 /**
  * Разброс внутри ступени: стаж подписки в месяцах или стаж фоллова в часах — меньше TIER_SPAN
  */
@@ -26,11 +26,11 @@ export const HIGHLIGHTED_PRIORITY = 2 * TALKING_PRIORITY;
 export function actorPriority(msg: ChatMessage, followedAt: number | null | undefined): number {
   const subMonths = msg.subMonths ?? 0;
   if (msg.role === 'broadcaster' || msg.role === 'moderator') return TIER[msg.role] * TIER_SPAN;
-  if (msg.role === 'vip') return TIER.vip * TIER_SPAN + subMonths;
-  if (subMonths) return TIER.subscriber * TIER_SPAN + subMonths;
+  if (msg.role === 'vip') return (TIER.vip * TIER_SPAN) + subMonths;
+  if (subMonths) return (TIER.subscriber * TIER_SPAN) + subMonths;
   // Часов от фоллова до TIER_SPAN часов от начала эпохи (3110 год): чем раньше, тем больше
   if (followedAt != null) {
-    return TIER.follower * TIER_SPAN + TIER_SPAN - 1 - Math.floor(followedAt / HOUR);
+    return (TIER.follower * TIER_SPAN) + TIER_SPAN - 1 - Math.floor(followedAt / HOUR);
   }
   return TIER.viewer;
 }

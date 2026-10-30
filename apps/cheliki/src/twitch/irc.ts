@@ -7,10 +7,10 @@ export interface IrcMessage {
 
 const TAG_ESCAPES: Record<string, string> = {
   ':': ';',
-  s: ' ',
   '\\': '\\',
-  r: '\r',
   n: '\n',
+  r: '\r',
+  s: ' ',
 };
 
 function unescapeTagValue(value: string): string {
@@ -52,5 +52,5 @@ export function parseIrcLine(line: string): IrcMessage | null {
   params.push(...middle);
   if (trailing !== null) params.push(trailing);
 
-  return { tags, prefix, command, params };
+  return { command, params, prefix, tags };
 }

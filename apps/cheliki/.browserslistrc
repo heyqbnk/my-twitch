@@ -1,0 +1,4 @@
+# The scene runs in an OBS browser source, whose embedded Chromium (CEF in OBS 32.2) lags behind
+# regular Chrome. Raise it deliberately, together with the OBS version, not via caniuse-lite
+# updates.
+chrome >= 127

@@ -1,7 +1,8 @@
 import { onScopeDispose, ref, watch, type Ref } from 'vue';
+
+import { loadChatHistory, saveChatHistory } from '../storage/chatHistory';
 import { isBot, parseRole, parseSubMonths, type ChatRole } from '../twitch/badges';
 import { splitMessage, type MessagePart } from '../twitch/emotes';
-import { loadChatHistory, saveChatHistory } from '../storage/chatHistory';
 import { parseIrcLine, type IrcMessage } from '../twitch/irc';
 import { MENTION } from '../twitch/links';
 
@@ -103,21 +104,21 @@ export function toChatMessage(msg: IrcMessage): ChatMessage {
   const text = msg.params[1] ?? '';
   const farewell = isFarewell(msg, text);
   return {
+    addressees: addresseesOf(msg, login, text),
+    author: msg.tags['display-name'] || login,
+    bot: isBot(login, msg.tags['badges']),
+    color: msg.tags['color'] || null,
+    farewell,
+    firstMessage: msg.tags['first-msg'] === '1',
+    highlighted: msg.tags['msg-id'] === 'highlighted-message',
     id: msg.tags['id'] || crypto.randomUUID(),
     login,
-    userId: msg.tags['user-id'] || undefined,
-    author: msg.tags['display-name'] || login,
-    color: msg.tags['color'] || null,
+    parts: splitMessage(text, msg.tags['emotes']),
     role: parseRole(msg.tags['badges']),
     subMonths: parseSubMonths(msg.tags['badge-info']),
-    parts: splitMessage(text, msg.tags['emotes']),
     timestamp: Number(msg.tags['tmi-sent-ts']) || Date.now(),
-    highlighted: msg.tags['msg-id'] === 'highlighted-message',
-    firstMessage: msg.tags['first-msg'] === '1',
+    userId: msg.tags['user-id'] || undefined,
     vanish: farewell || text.trim().toLowerCase() === VANISH_COMMAND,
-    farewell,
-    bot: isBot(login, msg.tags['badges']),
-    addressees: addresseesOf(msg, login, text),
   };
 }
 
@@ -231,7 +232,7 @@ export function useTwitchChat(channel: Ref<string | null>, delay: Ref<number>) {
     ws.addEventListener('open', () => {
       ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
       ws.send('PASS SCHMOOPIIE');
-      ws.send(`NICK justinfan${Math.floor(10000 + Math.random() * 90000)}`);
+      ws.send(`NICK justinfan${Math.floor(10000 + (Math.random() * 90000))}`);
       ws.send(`JOIN #${name}`);
     });
 
@@ -255,7 +256,7 @@ export function useTwitchChat(channel: Ref<string | null>, delay: Ref<number>) {
   }
 
   function scheduleReconnect(name: string) {
-    const delay = Math.min(1000 * 2 ** reconnectAttempts, MAX_RECONNECT_DELAY);
+    const delay = Math.min(1000 * (2 ** reconnectAttempts), MAX_RECONNECT_DELAY);
     reconnectAttempts++;
     reconnectTimer = setTimeout(() => connect(name), delay);
   }
@@ -301,5 +302,5 @@ export function useTwitchChat(channel: Ref<string | null>, delay: Ref<number>) {
     disconnect();
   });
 
-  return { messages, status, error, roomId };
+  return { error, messages, roomId, status };
 }
