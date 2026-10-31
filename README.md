@@ -3,8 +3,8 @@
 Монорепозиторий на pnpm workspaces + Turborepo: сцены и оверлеи для Twitch-стрима.
 
 - `apps/cheliki` — сцена с человечками из чата Twitch (Vue 3 + Vite)
-- `apps/site` — Nuxt-приложение, пока заготовка из стартера
-- `apps/dudes` — старая сцена, оставлена как референс и не поддерживается
+- `apps/site` — Nuxt-приложение с виджетами для стрима: человечки из чата
+  (`/widgets/twitch/dudes/<канал>`) и чат (`/widgets/twitch/chat/<канал>`)
 - `packages/*` — общие пакеты (пока пусто)
 
 ```sh

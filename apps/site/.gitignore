@@ -22,3 +22,6 @@ logs
 .env
 .env.*
 !.env.example
+
+# Walker sprite review preview, written by scripts/generate-walker.mjs
+walker-preview.*

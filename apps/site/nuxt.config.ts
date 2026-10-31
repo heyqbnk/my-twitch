@@ -2,6 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import browserslistToEsbuild from 'browserslist-to-esbuild';
 
 import { createCssModuleScopedName } from './config/createCssModuleScopedName';
+import { walkerSprites } from './config/walkerSprites';
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -85,6 +86,6 @@ export default defineNuxtConfig({
       // Resolved from .browserslistrc.
       target: browserslistToEsbuild(undefined, { path: import.meta.dirname }),
     },
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), walkerSprites()],
   },
 });

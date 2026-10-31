@@ -11,4 +11,38 @@
   --chat-default-author-color: oklch(71.4% 0.203 305.504deg);
   --chat-shimmer-color: oklch(100% 0 0deg / 15%);
   --chat-shimmer-highlight-color: oklch(100% 0 0deg / 40%);
+
+  /* The dudes scene. Its light and dark variants follow the viewer's color scheme */
+  --dudes-bubble-color: oklch(100% 0 0deg);
+  --dudes-bubble-text-color: oklch(13% 0.017 298.932deg);
+  --dudes-border-color: oklch(92.1% 0.004 301.42deg);
+  --dudes-floor-color: oklch(96.3% 0.009 99.985deg);
+  --dudes-first-message-color: oklch(59.2% 0.254 295.996deg);
+  --dudes-highlight-color: oklch(76.9% 0.165 70.08deg);
+  --dudes-link-color: oklch(58.8% 0.139 241.966deg);
+  --dudes-name-color: oklch(100% 0 0deg);
+  --dudes-outline-color: oklch(0% 0 0deg / 80%);
+  --dudes-icon-outline-color: oklch(0% 0 0deg / 90%);
+  --dudes-shadow-color: oklch(0% 0 0deg / 12%);
+  --dudes-board-color: oklch(89.5% 0.054 78.984deg);
+  --dudes-board-border-color: oklch(42.4% 0.072 59.272deg);
+  --dudes-board-shadow-color: oklch(0% 0 0deg / 18%);
+  --dudes-pole-color: oklch(51.1% 0.089 62.822deg);
+  --dudes-pole-shade-color: oklch(0% 0 0deg / 25%);
+  --dudes-terminal-color: oklch(17.3% 0.014 159.534deg);
+  --dudes-terminal-border-color: oklch(37.9% 0.05 154.187deg);
+  --dudes-terminal-text-color: oklch(80% 0.182 151.711deg);
+  --dudes-terminal-shadow-color: oklch(0% 0 0deg / 30%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dudes-bubble-color: oklch(20.6% 0.012 277.835deg);
+    --dudes-bubble-text-color: oklch(96.7% 0.003 264.542deg);
+    --dudes-border-color: oklch(31.1% 0.018 276.384deg);
+    --dudes-floor-color: oklch(24.6% 0.015 279.601deg);
+    --dudes-first-message-color: oklch(67% 0.205 299.175deg);
+    --dudes-highlight-color: oklch(83.7% 0.164 84.429deg);
+    --dudes-link-color: oklch(75.4% 0.139 232.661deg);
+  }
 }

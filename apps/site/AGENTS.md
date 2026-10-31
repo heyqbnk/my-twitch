@@ -19,6 +19,13 @@ Nuxt-приложение (Nuxt 4, Tailwind, i18n en/ru). Общие для ре
 проверки типов: `nuxt.config.ts` задаёт `typescript.typeCheck: 'build'`, так что сборка типы
 проверяет, но она намного медленнее.
 
+## Сгенерированные файлы
+
+- `layers/pages/app/components/twitch-dudes-widget/_utils/walkerSprite.ts` — спрайты человечков.
+  Источник — `sprites/*.aseprite`, генератор — `scripts/generate-walker.mjs`: `pnpm --filter site
+  sprites` или сам dev-сервер, который пересобирает файл при изменении спрайтов (превью —
+  `/walker-preview`). Как устроены спрайты — в `sprites/README.md`.
+
 ## Имена компонентов
 
 Имя компонента состоит из нескольких слов, как требует
