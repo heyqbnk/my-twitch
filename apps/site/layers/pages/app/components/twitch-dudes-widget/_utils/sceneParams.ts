@@ -41,3 +41,16 @@ export function parseDelay(raw: string | undefined): number {
   const seconds = toNumber(raw);
   return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
 }
+
+/**
+ * Floor height in screen px by default.
+ */
+export const DEFAULT_FLOOR = 32;
+
+/**
+ * Floor height in screen px, a whole number ≥ 0. 0 — no floor.
+ */
+export function parseFloor(raw: string | undefined): number {
+  const height = toNumber(raw);
+  return Number.isInteger(height) && height >= 0 ? height : DEFAULT_FLOOR;
+}

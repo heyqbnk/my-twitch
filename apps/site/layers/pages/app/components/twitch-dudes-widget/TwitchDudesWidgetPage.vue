@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import DudesScene from './_components/DudesScene.vue';
-import { parseChannel, parseDelay, parseScale, parseStay } from './_utils/sceneParams';
+import { parseChannel, parseDelay, parseFloor, parseScale, parseStay } from './_utils/sceneParams';
 
 /**
  * Chatters of a Twitch channel as pixel dudes walking along the bottom of the screen, for an OBS
@@ -11,6 +11,10 @@ const props = defineProps<{
    * Login of the Twitch channel whose chat is shown. Case and a leading `#` are ignored.
    */
   channel: string;
+  /**
+   * Floor height in screen px, a whole number. 0 — no floor. 32 by default.
+   */
+  floor?: string;
   /**
    * Message display delay in seconds, may be fractional. A message deleted by a moderator (or
    * whose author is banned or timed out) meanwhile is never shown. No delay by default.
@@ -42,6 +46,7 @@ const channelLogin = computed(() => parseChannel(props.channel));
     <DudesScene
       :channel="channelLogin"
       :delay="parseDelay(msgDelay)"
+      :floor="parseFloor(floor)"
       :scale="parseScale(scale)"
       :stay="parseStay(stay)"
     />

@@ -25,6 +25,10 @@ const props = defineProps<{
    */
   delay: number;
   /**
+   * Floor height in screen px. 0 — no floor.
+   */
+  floor: number;
+  /**
    * Screen px per scene px.
    */
   scale: number;
@@ -109,7 +113,11 @@ function exited(login: string) {
         :scale
       />
     </div>
-    <div class="h-8 border-t-2 border-(--dudes-border-color) bg-(--dudes-floor-color)"/>
+    <div
+      v-if="floor > 0"
+      class="border-t-2 border-(--dudes-border-color) bg-(--dudes-floor-color)"
+      :style="{ height: `${floor}px` }"
+    />
   </main>
 </template>
 

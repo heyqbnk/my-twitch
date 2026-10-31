@@ -12,6 +12,7 @@ function queryParam(name: string) {
 <template>
   <TwitchDudesWidgetPage
     :channel="String(route.params.channel)"
+    :floor="queryParam('floor')"
     :msg-delay="queryParam('msg_delay')"
     :scale="queryParam('scale')"
     :stay="queryParam('stay')"
