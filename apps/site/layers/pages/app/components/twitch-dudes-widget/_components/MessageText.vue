@@ -122,7 +122,12 @@ const cursorAt = computed(() => {
           :enter-from-class="cn.emoteEnterFrom"
           :appear="stream"
         >
-          <ChatEmote v-if="piece.shown" :emote="piece.part.emote" :overlays="piece.part.overlays"/>
+          <ChatEmote
+            v-if="piece.shown"
+            :count="piece.part.count"
+            :emote="piece.part.emote"
+            :overlays="piece.part.overlays"
+          />
         </Transition>
       </template>
       <!-- The link's domain is typed inside its plate -->
@@ -150,7 +155,12 @@ const cursorAt = computed(() => {
     <span v-if="stream" :class="cn.ghost" aria-hidden="true" data-message-ghost>
       <span v-if="prefix" :class="cn.prefix">{{ prefix }}</span>
       <template v-for="(part, i) in messageParts(message)" :key="i">
-        <ChatEmote v-if="part.type === 'emote'" :emote="part.emote" :overlays="part.overlays"/>
+        <ChatEmote
+          v-if="part.type === 'emote'"
+          :count="part.count"
+          :emote="part.emote"
+          :overlays="part.overlays"
+        />
         <span
           v-else-if="part.type === 'link'"
           :class="[cn.link, cn.linkWithIcon]"

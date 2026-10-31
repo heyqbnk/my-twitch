@@ -2,6 +2,7 @@
 // (`pnpm sprites` passes the dudes widget's module).
 // Pixels live in sprites/*.aseprite (how they are laid out — in sprites/README.md); this script
 // puts heads and accessories into body frames, outlines the figure, mirrors the side views and writes SVG paths.
+// The scene door's frames from sprites/door.aseprite go to the same module.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -433,6 +434,35 @@ const accessories = Object.fromEntries(ACC_NAMES.map(name => {
   return [name, { clip: cut === undefined ? null : clipOf(cut), layers: accLayers }];
 }));
 
+// door.aseprite: the left door (the jamb at the left edge, the leaf hinged to it), a frame per pose from closed
+// to fully open; the right door is its mirror. A layer per color, horizontal runs merged into rectangles down
+const doorSprite = readAseprite(`${SPRITES}door.aseprite`);
+const doorLayers = layersOf(doorSprite).filter(l => !l.group);
+function gridPath(g, has) {
+  const rects = [];
+  let open = new Map();
+  g.forEach((row, y) => {
+    const next = new Map();
+    for (let x = 0; x < row.length; x++) {
+      if (!has(row[x])) continue;
+      const start = x;
+      while (x + 1 < row.length && has(row[x + 1])) x++;
+      const key = `${start} ${x}`;
+      const rect = open.get(key) ?? { h: 0, w: x - start + 1, x: start, y };
+      if (!rect.h) rects.push(rect);
+      rect.h++;
+      next.set(key, rect);
+    }
+    open = next;
+  });
+  return rects.map(({ h, w, x, y }) => `M${x} ${y}h${w}v${h}h${-w}z`).join('');
+}
+const doorFrames = doorSprite.frames.map((_, f) => {
+  const g = flatten(doorSprite, doorLayers, f, 0, doorSprite.width);
+  return [...new Set(g.flat().filter(Boolean))].sort()
+    .map(color => ({ d: gridPath(g, c => c === color), fill: fillOf(color) }));
+});
+
 const out = process.argv[2];
 write(
   out,
@@ -465,6 +495,14 @@ export const WALKER = {
   clothes: ${JSON.stringify(clothes, null, 2).replace(/\n/g, '\n  ')},
   accessories: ${JSON.stringify(accessories, null, 2).replace(/\n/g, '\n  ')},
   robot: ${JSON.stringify(robot, null, 2).replace(/\n/g, '\n  ')},
+} as const
+
+// The left scene door from sprites/door.aseprite, in scene pixels; the right one is its mirror.
+// frames — poses from closed (0) to fully open (the last), each a list of layers.
+export const DOOR = {
+  width: ${doorSprite.width},
+  height: ${doorSprite.height},
+  frames: ${JSON.stringify(doorFrames, null, 2).replace(/\n/g, '\n  ')},
 } as const
 `,
 );

@@ -68,9 +68,8 @@ const isAddressee = (msg: ChatMessage, actor: SceneActor) => !!msg.addressees?.s
 /**
  * Dudes on the scene: authors of the messages in the chat buffer, in the order they first
  * appeared. When the author's messages fall out of the buffer, they stay silent longer than `stay`
- * ms, or write !vanish / bb, the dude leaves the scene (saying goodbye with a "bb" sign), and the
- * command itself is not shown.
- * One who left by a command stays in the list with `leaving`, so the scene knows the farewell.
+ * ms, or write bb, the dude leaves the scene, saying goodbye with a "bb" sign.
+ * One who said goodbye stays in the list with `leaving`, so the scene knows the farewell.
  * `followDates` are the channel follow dates by login, for the seniority of followers.
  */
 export function useSceneActors(
@@ -91,11 +90,11 @@ export function useSceneActors(
     const actors = new Map<string, SceneActor>();
     for (const msg of messages.value) {
       const actor = actors.get(msg.login);
-      if (msg.vanish) {
+      if (msg.farewell) {
         if (!actor) {
           continue;
         }
-        if (msg.farewell && !actor.leaving) {
+        if (!actor.leaving) {
           actor.lastMessage = msg;
         }
         actor.leaving = true;
@@ -121,7 +120,7 @@ export function useSceneActors(
           x: actorPosition(msg.login),
         });
       }
-      if (msg.vanish || !msg.addressees) {
+      if (msg.farewell || !msg.addressees) {
         continue;
       }
       for (const other of actors.values()) {

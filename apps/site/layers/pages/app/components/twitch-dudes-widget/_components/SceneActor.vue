@@ -6,7 +6,7 @@ import RoleBadge from './RoleBadge.vue';
 import { useKeepInside } from '../_composables/useKeepInside';
 import { useMessageParts } from '../_composables/useMessageParts';
 import type { SceneActor } from '../_composables/useSceneActors';
-import { DOOR_JAMB, DOOR_LEAF, type Side, useSceneDoors } from '../_composables/useSceneDoors';
+import { type Side, useSceneDoors } from '../_composables/useSceneDoors';
 import { useShrinkWrap } from '../_composables/useShrinkWrap';
 import { useTalkGrowth } from '../_composables/useTalkGrowth';
 import { shownAt } from '../_composables/useTwitchChat';
@@ -15,7 +15,7 @@ import { HIGHLIGHTED_PRIORITY, TALKING_PRIORITY } from '../_utils/actorPriority'
 import { ROLE_COLORS } from '../_utils/badges';
 import { emotesOnly, type MessagePart } from '../_utils/emotes';
 import { DEFAULT_SCALE } from '../_utils/sceneParams';
-import { WALKER } from '../_utils/walkerSprite';
+import { DOOR, WALKER } from '../_utils/walkerSprite';
 
 const BUBBLE_DURATION = 6000;
 // Having typed the message, the bubble smoothly scrolls it to the end, and stands still for the
@@ -285,7 +285,7 @@ const offstage = (side: Side) => fromSceneEdge(side, -halfBody());
 // In front of the door: the opening leaf doesn't touch it
 const beforeDoor = (side: Side) => fromSceneEdge(
   side,
-  ((DOOR_JAMB + DOOR_LEAF + DOOR_GAP) * props.scale) + halfBody(),
+  ((DOOR.width + DOOR_GAP) * props.scale) + halfBody(),
 );
 
 function holdDoor(side: Side) {
@@ -757,7 +757,10 @@ onBeforeUnmount(() => {
               ]"
             >
               <MessageText
-                :class="cn.bubbleText"
+                :class="[cn.bubbleText, actor.lastMessage.action && cn.bubbleTextAction]"
+                :style="{
+                  '--action-color': actor.bot ? undefined : roleColor ?? actor.color,
+                }"
                 :message="actor.lastMessage"
                 :prefix="actor.bot ? '$ ' : undefined"
                 stream
@@ -846,6 +849,7 @@ onBeforeUnmount(() => {
                 <ChatEmote
                   v-for="(part, i) in emoteOnly"
                   :key="i"
+                  :count="part.count"
                   :emote="part.emote"
                   :overlays="part.overlays"
                   :size="SOLO_EMOTE_SIZE * ui"
@@ -1014,10 +1018,9 @@ onBeforeUnmount(() => {
     0 4px 12px var(--dudes-shadow-color);
 }
 
-/* A bot writes into a terminal: a dark window with almost square corners, green monospace text
-   with a slight glow, a "$" prompt and a blinking cursor. The same in light and dark themes */
+/* A bot writes into a terminal: a dark window, green monospace text with a slight glow, a "$"
+   prompt and a blinking cursor. The same in light and dark themes */
 .bubbleBot {
-  --bubble-radius: calc(var(--ui) * 3);
   --bubble-border: 1px solid var(--dudes-terminal-border-color);
   --bubble-bg: var(--dudes-terminal-color);
   --bubble-shadow:
@@ -1026,9 +1029,12 @@ onBeforeUnmount(() => {
 }
 
 .bubbleBody {
-  /* Emotes in the message text */
-  --emote-size: calc(var(--ui) * 28);
+  /* Emotes in the message text: with the overhang trimmed (see ChatEmote) they fit into a line
+     and don't make it taller */
+  --emote-size: calc(var(--ui) * 20);
 
+  /* The explicit height is the content's, the padding and border come on top */
+  box-sizing: content-box;
   min-height: 0;
   padding: calc(var(--ui) * 4) calc(var(--ui) * 10);
   border: var(--bubble-border);
@@ -1055,8 +1061,11 @@ onBeforeUnmount(() => {
 }
 
 /* A rotated square with a border at the bottom and right: sticks out from under the bubble with a
-   corner down and covers the bubble's border above itself */
+   corner down and covers the bubble's border above itself. The upper half is clipped off, but
+   for a strip that covers the border: else the upper corner goes into the bubble onto the text */
 .bubbleTail {
+  --tail-cover: 3px;
+
   position: absolute;
   top: 100%;
   left: clamp(var(--tail-inset), calc(50% - var(--bubble-shift)), calc(100% - var(--tail-inset)));
@@ -1070,6 +1079,11 @@ onBeforeUnmount(() => {
   background: var(--bubble-bg);
   translate: -50% -50%;
   rotate: 45deg;
+  clip-path: polygon(
+    100% calc(-1 * var(--tail-cover)),
+    100% 100%,
+    calc(-1 * var(--tail-cover)) 100%
+  );
 }
 
 .bubbleName {
@@ -1125,6 +1139,13 @@ onBeforeUnmount(() => {
 /* A block, so ResizeObserver sees the typed text grow */
 .bubbleText {
   display: block;
+}
+
+/* "/me": in italics and in the author's color, like in the Twitch chat. A bot keeps the
+   terminal's color: --action-color isn't set for it */
+.bubbleTextAction {
+  font-style: italic;
+  color: var(--action-color, inherit);
 }
 
 .cursor {

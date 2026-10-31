@@ -11,6 +11,11 @@ export interface Emote {
 }
 
 export interface EmotePart {
+  /**
+   * How many times the emote is repeated in a row: such a run is shown as one emote with a
+   * counter. 1 if absent.
+   */
+  count?: number;
   emote: Emote;
   overlays: Emote[];
   type: 'emote';
@@ -148,6 +153,34 @@ export function expandEmotes(parts: MessagePart[], emotes: EmoteMap): MessagePar
         out.push({ emote, overlays: [], type: 'emote' });
       }
     }
+  }
+
+  return out;
+}
+
+function emoteKey({ emote, overlays }: EmotePart): string {
+  return [emote, ...overlays].map(e => `${e.provider}:${e.id}`).join(' ');
+}
+
+/**
+ * Merges runs of the same emote (with the same overlays), separated by whitespace only, into
+ * one emote with a `count`.
+ */
+export function mergeRepeatedEmotes(parts: MessagePart[]): MessagePart[] {
+  const out: MessagePart[] = [];
+
+  for (const part of parts) {
+    if (part.type === 'emote') {
+      const last = out.at(-1);
+      const i = last?.type === 'text' && !last.text.trim() ? out.length - 2 : out.length - 1;
+      const prev = out[i];
+      if (prev?.type === 'emote' && emoteKey(prev) === emoteKey(part)) {
+        out.length = i + 1;
+        out[i] = { ...prev, count: (prev.count ?? 1) + (part.count ?? 1) };
+        continue;
+      }
+    }
+    out.push(part);
   }
 
   return out;

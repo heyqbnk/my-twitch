@@ -2,7 +2,13 @@ import type { InjectionKey, Ref } from 'vue';
 
 import type { ChatMessage } from './useTwitchChat';
 
-import { type Emote, type EmoteMap, expandEmotes, type MessagePart } from '../_utils/emotes';
+import {
+  type Emote,
+  type EmoteMap,
+  expandEmotes,
+  mergeRepeatedEmotes,
+  type MessagePart,
+} from '../_utils/emotes';
 
 type MessagePartsResolver = (msg: ChatMessage) => MessagePart[];
 
@@ -29,7 +35,7 @@ export function provideMessageParts(emotes: Ref<EmoteMap>) {
     if (!parts) {
       parts = msg.farewell
         ? [{ emote: map.get(FAREWELL_EMOTE_NAME) ?? FAREWELL_EMOTE, overlays: [], type: 'emote' }]
-        : expandEmotes(msg.parts, map);
+        : mergeRepeatedEmotes(expandEmotes(msg.parts, map));
       cache.set(msg, parts);
     }
     return parts;

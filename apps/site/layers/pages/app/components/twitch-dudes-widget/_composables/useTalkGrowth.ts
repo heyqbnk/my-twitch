@@ -4,7 +4,6 @@ import type { WatchSource } from 'vue';
  * While talking, a dude is TALK_GROWTH bigger; done talking, back to 1.
  */
 const TALK_GROWTH = 0.15;
-const GROW_MS = 200;
 const SHRINK_MS = 400;
 
 /**
@@ -31,9 +30,17 @@ export function useTalkGrowth(talking: WatchSource<boolean>) {
     frame = requestAnimationFrame(step);
   }
 
+  // Grows at once when it starts talking, shrinks back smoothly
   watch(
     talking,
-    isTalking => animateTo(isTalking ? 1 + TALK_GROWTH : 1, isTalking ? GROW_MS : SHRINK_MS),
+    isTalking => {
+      if (isTalking) {
+        cancelAnimationFrame(frame);
+        growth.value = 1 + TALK_GROWTH;
+      } else {
+        animateTo(1, SHRINK_MS);
+      }
+    },
     { immediate: true },
   );
 

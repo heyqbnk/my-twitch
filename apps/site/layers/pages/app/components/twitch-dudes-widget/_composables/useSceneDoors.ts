@@ -4,14 +4,6 @@ export type Side = 'left' | 'right';
 export const SIDES: Side[] = ['left', 'right'];
 
 /**
- * Sizes in scene px, multiplied by the scale on screen: the jamb at the very edge of the scene and
- * the leaf hinged to it. A closed leaf stands edge-on to the viewer and is invisible; opening, it
- * turns from behind the scene's edge to face the viewer.
- */
-export const DOOR_JAMB = 2;
-export const DOOR_LEAF = 14;
-export const DOOR_HEIGHT = 30;
-/**
  * Animation durations: the door appearing/disappearing and the leaf swinging.
  */
 export const DOOR_APPEAR_MS = 200;

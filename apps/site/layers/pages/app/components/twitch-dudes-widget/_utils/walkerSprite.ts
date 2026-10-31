@@ -706,3 +706,154 @@ export const WALKER = {
     }
   ],
 } as const
+
+// The left scene door from sprites/door.aseprite, in scene pixels; the right one is its mirror.
+// frames — poses from closed (0) to fully open (the last), each a list of layers.
+export const DOOR = {
+  width: 16,
+  height: 30,
+  frames: [
+    [
+      {
+        "d": "M0 0h1v30h-1z",
+        "fill": "#5b3a1e"
+      },
+      {
+        "d": "M1 0h1v30h-1z",
+        "fill": "#7a5230"
+      }
+    ],
+    [
+      {
+        "d": "M0 0h1v30h-1zM2 1h1v29h-1z",
+        "fill": "#5b3a1e"
+      },
+      {
+        "d": "M1 0h1v30h-1z",
+        "fill": "#7a5230"
+      }
+    ],
+    [
+      {
+        "d": "M3 3h1v1h-1zM3 13h1v1h-1zM3 17h1v1h-1zM3 27h1v1h-1z",
+        "fill": "#56361b"
+      },
+      {
+        "d": "M0 0h1v30h-1zM5 1h1v29h-1z",
+        "fill": "#5b3a1e"
+      },
+      {
+        "d": "M3 4h1v9h-1zM3 18h1v9h-1z",
+        "fill": "#5f3d1f"
+      },
+      {
+        "d": "M2 1h3v2h-3zM2 3h1v11h-1zM4 3h1v11h-1zM2 14h3v3h-3zM2 17h1v11h-1zM4 17h1v11h-1zM2 28h3v2h-3z",
+        "fill": "#694323"
+      },
+      {
+        "d": "M1 0h1v30h-1z",
+        "fill": "#7a5230"
+      }
+    ],
+    [
+      {
+        "d": "M0 0h1v30h-1zM9 1h1v29h-1z",
+        "fill": "#5b3a1e"
+      },
+      {
+        "d": "M3 3h5v1h-5zM3 4h1v9h-1zM7 4h1v9h-1zM3 13h5v1h-5zM3 17h5v1h-5zM3 18h1v9h-1zM7 18h1v9h-1zM3 27h5v1h-5z",
+        "fill": "#674020"
+      },
+      {
+        "d": "M4 4h3v9h-3zM4 18h3v9h-3z",
+        "fill": "#714925"
+      },
+      {
+        "d": "M1 0h1v30h-1z",
+        "fill": "#7a5230"
+      },
+      {
+        "d": "M2 1h7v2h-7zM2 3h1v11h-1zM8 3h1v11h-1zM2 14h7v1h-7zM2 15h5v2h-5zM8 15h1v13h-1zM2 17h1v11h-1zM2 28h7v2h-7z",
+        "fill": "#7c4f29"
+      },
+      {
+        "d": "M7 15h1v2h-1z",
+        "fill": "#bb9c49"
+      }
+    ],
+    [
+      {
+        "d": "M0 0h1v30h-1zM12 1h1v29h-1z",
+        "fill": "#5b3a1e"
+      },
+      {
+        "d": "M4 3h6v1h-6zM4 13h6v1h-6zM4 17h6v1h-6zM4 27h6v1h-6z",
+        "fill": "#734724"
+      },
+      {
+        "d": "M1 0h1v30h-1z",
+        "fill": "#7a5230"
+      },
+      {
+        "d": "M4 4h6v9h-6zM4 18h6v9h-6z",
+        "fill": "#7f512a"
+      },
+      {
+        "d": "M2 1h10v2h-10zM2 3h2v11h-2zM10 3h2v11h-2zM2 14h10v3h-10zM2 17h2v11h-2zM10 17h2v11h-2zM2 28h10v2h-10z",
+        "fill": "#8b592e"
+      }
+    ],
+    [
+      {
+        "d": "M0 0h1v30h-1zM14 1h1v29h-1z",
+        "fill": "#5b3a1e"
+      },
+      {
+        "d": "M1 0h1v30h-1z",
+        "fill": "#7a5230"
+      },
+      {
+        "d": "M4 3h8v1h-8zM4 4h1v9h-1zM11 4h1v9h-1zM4 13h8v1h-8zM4 17h8v1h-8zM4 18h1v9h-1zM11 18h1v9h-1zM4 27h8v1h-8z",
+        "fill": "#7b4c27"
+      },
+      {
+        "d": "M5 4h6v9h-6zM5 18h6v9h-6z",
+        "fill": "#88572d"
+      },
+      {
+        "d": "M2 1h12v2h-12zM2 3h2v11h-2zM12 3h2v11h-2zM2 14h12v1h-12zM2 15h9v2h-9zM12 15h2v13h-2zM2 17h2v11h-2zM2 28h12v2h-12z",
+        "fill": "#955f31"
+      },
+      {
+        "d": "M11 15h1v2h-1z",
+        "fill": "#e1bb57"
+      }
+    ],
+    [
+      {
+        "d": "M0 0h1v30h-1z",
+        "fill": "#5b3a1e"
+      },
+      {
+        "d": "M1 0h1v30h-1z",
+        "fill": "#7a5230"
+      },
+      {
+        "d": "M4 3h10v1h-10zM4 4h1v9h-1zM13 4h1v9h-1zM4 13h10v1h-10zM4 17h10v1h-10zM4 18h1v9h-1zM13 18h1v9h-1zM4 27h10v1h-10z",
+        "fill": "#7f4f28"
+      },
+      {
+        "d": "M5 4h8v9h-8zM5 18h8v9h-8z",
+        "fill": "#8c5a2e"
+      },
+      {
+        "d": "M2 1h14v2h-14zM2 3h2v11h-2zM14 3h2v11h-2zM2 14h14v1h-14zM2 15h11v2h-11zM14 15h2v13h-2zM2 17h2v11h-2zM2 28h14v2h-14z",
+        "fill": "#9a6233"
+      },
+      {
+        "d": "M13 15h1v2h-1z",
+        "fill": "#e8c15a"
+      }
+    ]
+  ],
+} as const

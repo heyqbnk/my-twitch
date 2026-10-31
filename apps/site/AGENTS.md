@@ -21,7 +21,7 @@ Nuxt-приложение (Nuxt 4, Tailwind, i18n en/ru). Общие для ре
 
 ## Сгенерированные файлы
 
-- `layers/pages/app/components/twitch-dudes-widget/_utils/walkerSprite.ts` — спрайты человечков.
+- `layers/pages/app/components/twitch-dudes-widget/_utils/walkerSprite.ts` — спрайты человечков и двери сцены.
   Источник — `sprites/*.aseprite`, генератор — `scripts/generate-walker.mjs`: `pnpm --filter site
   sprites` или сам dev-сервер, который пересобирает файл при изменении спрайтов (превью —
   `/walker-preview`). Как устроены спрайты — в `sprites/README.md`.
