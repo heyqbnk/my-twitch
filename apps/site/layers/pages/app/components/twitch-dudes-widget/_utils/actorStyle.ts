@@ -115,30 +115,20 @@ const SHOES_COLORS: Record<ShoesName, string[]> = {
   sneakers: ['#e53935', '#1e88e5', '#43a047', '#1f1f26', '#ff8f00', '#8e24aa'],
 };
 /**
- * Tops picked at random. The rest (the dress) only come from a personal outfit.
- */
-const RANDOM_TOPS: TopName[] = ['longsleeve', 'tshirt', 'hoodie'];
-/**
- * Personal outfits by login: they override the random clothes.
- */
-const PERSONAL_OUTFITS: Record<string, Partial<Pick<Outfit, 'pants' | 'shoes' | 'top'>>> = {
-  // Bare legs under the dress: shorts under the skirt are not visible
-  ilyinvp: { pants: 'shorts', top: 'dress' },
-};
-
-/**
  * Clothes and their colors, picked by Twitch ID (or the login without it): the same across
  * sessions.
  */
 export function actorOutfit(msg: Pick<ChatMessage, 'login' | 'userId'>): Outfit {
   const key = msg.userId ?? msg.login;
   const pick = <T>(list: readonly T[], seed: number) => list[hash(key, seed) % list.length]!;
-  const personal = PERSONAL_OUTFITS[msg.login];
-  const top = personal?.top ?? pick(RANDOM_TOPS, 0x1b873593);
   // Listed explicitly rather than taken from the sorted palette keys: the order decides the pick,
   // so changing it would change every viewer's clothes
-  const pants = personal?.pants ?? pick(['jeans', 'shorts', 'joggers'] as PantsName[], 0xcc9e2d51);
-  const shoes = personal?.shoes ?? pick(['boots', 'sneakers', 'highboots'] as ShoesName[], 0xe6546b64);
+  const top = pick(['longsleeve', 'tshirt', 'hoodie', 'dress'] as TopName[], 0x1b873593);
+  // Bare legs under the dress: shorts under the skirt are not visible
+  const pants = top === 'dress'
+    ? 'shorts'
+    : pick(['jeans', 'shorts', 'joggers'] as PantsName[], 0xcc9e2d51);
+  const shoes = pick(['boots', 'sneakers', 'highboots'] as ShoesName[], 0xe6546b64);
   return {
     pants,
     pantsColor: pick(PANTS_COLORS[pants], 0x5bd1e995),
