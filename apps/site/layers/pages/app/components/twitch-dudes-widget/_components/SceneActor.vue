@@ -8,7 +8,6 @@ import { useMessageParts } from '../_composables/useMessageParts';
 import type { SceneActor } from '../_composables/useSceneActors';
 import { type Side, useSceneDoors } from '../_composables/useSceneDoors';
 import { useShrinkWrap } from '../_composables/useShrinkWrap';
-import { useTalkGrowth } from '../_composables/useTalkGrowth';
 import { shownAt } from '../_composables/useTwitchChat';
 import { useWandering, WALK_CYCLE_MS } from '../_composables/useWandering';
 import { HIGHLIGHTED_PRIORITY, TALKING_PRIORITY } from '../_utils/actorPriority';
@@ -30,6 +29,8 @@ const MAX_NODS = 10;
 const WIDE_BUBBLE_CHARS = 120;
 // The role badge in front of the nick matches the nick's font size (11px), not to inflate the line
 const BADGE_SIZE = 11;
+// While talking, a dude is this much bigger
+const TALK_GROWTH = 0.3;
 
 const props = defineProps<{
   actor: SceneActor;
@@ -141,9 +142,9 @@ const zIndex = computed(() => {
   const bonus = props.actor.lastMessage.highlighted ? HIGHLIGHTED_PRIORITY : TALKING_PRIORITY;
   return props.actor.priority + bonus;
 });
-// A talking dude is bigger: px is the final scale with the growth
-const growth = useTalkGrowth(bubbleVisible);
-const px = computed(() => props.scale * growth.value);
+// A talking dude is TALK_GROWTH bigger, at once and without a transition: px is the final scale
+// with the growth
+const px = computed(() => props.scale * (bubbleVisible.value ? 1 + TALK_GROWTH : 1));
 let bubbleTimer: ReturnType<typeof setTimeout> | null = null;
 
 const root = ref<HTMLElement | null>(null);
